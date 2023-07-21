@@ -116,7 +116,7 @@ async function score() {
   debugElement.appendChild(document.createTextNode('Done'))
   debugElement.appendChild(document.createElement('br'))
 
-  
+  /**
   let str = ''
   for (const [key, value] of allData) {
     str += `${key} : ${JSON.stringify(value)}\n`
@@ -124,6 +124,7 @@ async function score() {
   const preElement = document.createElement('pre');
   preElement.textContent = str
   debugElement.appendChild(preElement)
+  /**/
 }
 
 function cloneObj(obj) {
