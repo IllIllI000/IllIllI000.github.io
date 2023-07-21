@@ -15420,8 +15420,8 @@ File:&nbsp;contracts/interfaces/ILegacyFollowModule.sol
 	    IllIllI-bot report's headings (seen <a href="https://illilli000.github.io/races/2023-07-lens/key.txt">here</a> for the default page data). 
 	    When there is more than one value in the 'matches' column, that means there are some instances that appear in multiple categories. 
 	    For example, label '[L-05]' has matches 'L‑02_dup, D‑02_dup', which means '[L-05] Array lengths not checked' in the pasted report 
-	    has some entries that may match either '[L‑02] Array lengths not checked' or '[D‑02] Array lengths not checked' (invalid examples) 
-	    from The IllIllI-bot report.</p>
+	    has some entries that may match either '[L‑02] Array lengths not checked' (valid instances) or '[D‑02] Array lengths not checked' 
+	    (disputed/invalid instances) from The IllIllI-bot report.</p>
     <p>The purpose of this tool is to ensure that two reports with the same issue get the same score for that issue. For example, the winning bot
 	    had '[L-10]	Int casting `block.timestamp` can reduce the lifespan of a contract' as 'Low' severity, but looking at the 'matches'
             column (N‑57_dup), IllIllI-bot had the same finding as '[N‑57] Contract timekeeping will break earlier than the Ethereum network itself will 
