@@ -1,0 +1,118 @@
+Summary
+Medium Risk Issues
+Issue	Instances
+[M‑01]	Use of transferFrom() rather than safeTransferFrom() for NFTs in will lead to the loss of NFTs	1
+[M‑02]	_safeMint() should be used rather than _mint() wherever possible	4
+[M‑03]	The owner is a single point of failure and a centralization risk	19
+Total: 24 instances over 3 issues
+
+Low Risk Issues
+Issue	Instances
+[L‑01]	Unsafe downcast	8
+[L‑02]	Array lengths not checked	3
+[L‑03]	Use Ownable2Step rather than Ownable	1
+[L‑04]	Missing contract-existence checks before low-level calls	1
+[L‑05]	Missing checks for ecrecover() signature malleability	1
+[L‑06]	Initialization can be front-run	2
+[L‑07]	NFT contract redefines _mint()/_safeMint(), but not both	1
+[L‑08]	Missing checks for address(0x0) when updating address state variables	3
+[L‑09]	Missing checks for address(0x0) in the constructor	11
+[L‑10]	NFT doesn’t handle hard forks	4
+[L‑11]	Solidity version 0.8.20 may not work on other chains due to PUSH0	63
+[L‑12]	Consider implementing two-step procedure for updating protocol addresses	1
+Total: 99 instances over 12 issues
+
+Non-critical Issues
+Issue	Instances
+[N‑01]	public functions not called by the contract should be declared external instead	1
+[N‑02]	constants should be defined rather than using magic numbers	22
+[N‑03]	Event is not properly indexed	6
+[N‑04]	Unused file	4
+[N‑05]	Events that mark critical parameter changes should contain both the old and the new value	6
+[N‑06]	Constant redefined elsewhere	2
+[N‑07]	Use @inheritdoc rather than using a non-standard annotation	22
+[N‑08]	Inconsistent spacing in comments	3
+[N‑09]	Lines are too long	28
+[N‑10]	Variable names that consist of all capital letters should be reserved for constant/immutable variables	1
+[N‑11]	Non-library/interface files should use fixed compiler versions, not floating ones	15
+[N‑12]	Using >/>= without specifying an upper bound is unsafe	30
+[N‑13]	Typos	47
+[N‑14]	File is missing NatSpec	17
+[N‑15]	NatSpec @param is missing	95
+[N‑16]	NatSpec @return argument is missing	18
+[N‑17]	Avoid the use of sensitive terms	285
+[N‑18]	Large assembly blocks should have extensive comments	1
+[N‑19]	Visibility should be set explicitly rather than defaulting to internal	53
+[N‑20]	Function ordering does not follow the Solidity style guide	20
+[N‑21]	Contract does not follow the Solidity style guide’s suggested layout ordering	4
+[N‑22]	Control structures do not follow the Solidity Style Guide	10
+[N‑23]	Imports should use double quotes rather than single quotes	203
+[N‑24]	Strings should use double quotes rather than single quotes	14
+[N‑25]	Expressions for constant values such as a call to keccak256(), should use immutable rather than constant	2
+[N‑26]	Consider using delete rather than assigning zero/false to clear values	2
+[N‑27]	Contracts should have full test coverage	1
+[N‑28]	Large or complicated code bases should implement invariant tests	1
+[N‑29]	Enable IR-based code generation	1
+[N‑30]	Array indicies should be referenced via enums rather than via numeric literals	2
+[N‑31]	Consider implementing EIP-5267 to securely describe EIP-712 domains being used	1
+[N‑32]	Event names should use CamelCase	4
+[N‑33]	Events are missing sender information	3
+[N‑34]	addresss shouldn’t be hard-coded	2
+[N‑35]	Consider using named mappings	45
+[N‑36]	Consider adding a block/deny-list	4
+[N‑37]	Non-external/public variable names should begin with an underscore	70
+[N‑38]	Use of override is unnecessary	130
+[N‑39]	Complex casting	1
+[N‑40]	Large numeric literals should use underscores for readability	1
+[N‑41]	Unused error definition	1
+[N‑42]	Unused event definition	1
+[N‑43]	Unused contract variables	1
+[N‑44]	Unused modifers	1
+[N‑45]	Use abi.encodeCall() instead of abi.encodeWithSignature()/abi.encodeWithSelector()	1
+[N‑46]	Consider using descriptive constants when passing zero as a function argument	8
+[N‑47]	Constants in comparisons should appear on the left side	52
+[N‑48]	Consider disabling renounceOwnership()	1
+[N‑49]	else-block not required	2
+[N‑50]	Cast to bytes or bytes32 for clearer semantic meaning	9
+[N‑51]	Use bytes.concat() on bytes instead of abi.encodePacked() for clearer semantic meaning	1
+[N‑52]	Custom error has no error details	63
+[N‑53]	Function names should use lowerCamelCase	14
+[N‑54]	Interfaces should be defined in separate files from their usage	2
+[N‑55]	Imports could be organized more systematically	14
+[N‑56]	Polymorphic functions make security audits more time-consuming and error-prone	8
+[N‑57]	Contract timekeeping will break earlier than the Ethereum network itself will stop working	3
+[N‑58]	Use the latest solidity (prior to 0.8.20 if on L2s) for deployment	21
+[N‑59]	Public variable declarations should have NatSpec descriptions	17
+Total: 1397 instances over 59 issues
+
+Issue	Instances
+[D‑01]	Loss of precision	2
+[D‑02]	Array lengths not checked	10
+[D‑03]	Open TODOs	4
+[D‑04]	Contract implements interface without extending the interface	1
+[D‑05]	Numeric values having to do with time should use time units for readability	1
+[D‑06]	mint()/burn() missing access control	4
+[D‑07]	Direct supportsInterface() calls may cause caller to revert	6
+[D‑08]	Signatures used by contract are vulnerable to malleability attacks	1
+[D‑09]	Signature use at deadlines should be allowed	1
+[D‑10]	Unused contract variables	12
+[D‑11]	Storage Write Removal Bug On Conditional Early Termination	35
+[D‑12]	Bad rules	1
+[D‑13]	Do not calculate constant variables, which will save gas	17
+[D‑14]	Function result should be cached	2
+[D‑15]	Functions calling contracts/addresses with transfer hooks are missing reentrancy guards	1
+[D‑16]	Use delete instead of setting mapping/state variable to zero, to save gas	2
+[D‑17]	abi.encode() is less efficient than abi.encodepacked()	7
+[D‑18]	Event names should use CamelCase	39
+[D‑19]	Functions which are either private or internal should have a preceding _ in their name	37
+[D‑20]	Tokens may be minted to address(0x0)	3
+[D‑21]	Contracts are not using their OZ Upgradeable counterparts	28
+[D‑22]	name() is not a part of the ERC-20 standard	1
+[D‑23]	Change public function visibility to external to save gas	1
+[D‑24]	Use replace and pop instead of the delete keyword to removing an item from an array	14
+[D‑25]	safeTransfer function does not check for contract existence	3
+[D‑26]	Function doesn’t do anything	4
+[D‑27]	Functions calling contracts/addresses with transfer hooks are missing reentrancy guards	2
+[D‑28]	Return values of transfer()/transferFrom() not checked	2
+[D‑29]	Some tokens may revert when zero value transfers are made	2
+[D‑30]	SafeTransfer should be used in place of transfer	2
