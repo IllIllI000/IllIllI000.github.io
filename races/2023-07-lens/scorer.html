@@ -15425,24 +15425,28 @@ File:&nbsp;contracts/interfaces/ILegacyFollowModule.sol
     </form>
     
     <br/>
+
     <p><b>How to read this table</b>: The report you've pasted above will be parsed into individual headings, with one row per issue type. 
-	    The 'matches' column is not meant to match the 'label' column, but is instead meant to match the specific finding from the 
-	    IllIllI-bot report's headings (seen <a href="https://illilli000.github.io/races/2023-07-lens/key.txt">here</a> for the default page data). 
-	    When there is more than one value in the 'matches' column, that means there are some instances that appear in multiple categories. 
-	    For example, label '[L-05]' has matches 'L‑02_dup, D‑02_dup', which means '[L-05] Array lengths not checked' in the pasted report 
-	    has some entries that may match either '[L‑02] Array lengths not checked' (valid instances) or '[D‑02] Array lengths not checked' 
-	    (disputed/invalid instances) from the IllIllI-bot report. A match of '?' means that I don't currently have an alias that matches
-            the report's heading; there may or may not be a duplicate in the IllIllI-bot, and the judge will have to investigate as would 
-            normally be done.</p>
+    The 'matches' column is not meant to match the 'label' column, but is instead meant to match the specific finding from the 
+    IllIllI-bot report's headings (seen <a href="https://illilli000.github.io/races/2023-07-lens/key.txt">here</a> for the default page data). 
+    When there is more than one value in the 'matches' column, that means there are some instances that appear in multiple categories. 
+    For example, label '<i>[L-05]</i>' has matches '<i>L‑02_dup, D‑02_dup</i>', which means '<i>[L-05] Array lengths not checked</i>' in the pasted report 
+    has some entries that may match either '<i>[L‑02] Array lengths not checked</i>' (valid instances) or '<i>[D‑02] Array lengths not checked</i>' 
+    (disputed/invalid instances) from the IllIllI-bot report. A match of '<i>?</i>' means that I don't currently have an alias that matches
+    the report's heading; there may or may not be a duplicate in the IllIllI-bot, and the judge will have to investigate as would 
+    normally be done.</p>
+
     <p>The purpose of this tool is to ensure that two reports with the same issue get the same score for that issue. For example, the winning bot
-	    had '[L-10]	Int casting `block.timestamp` can reduce the lifespan of a contract' as 'Low' severity, but looking at the 'matches'
-            column (N‑57_dup), IllIllI-bot had the same finding as '[N‑57] Contract timekeeping will break earlier than the Ethereum network itself will 
-	    stop working' with 'Non-critical' severity. A judge judging these two reports should give both '[L-10]' in this report, and '[N‑57]' in
-            IllIllI-bot's report, the same number of points.</p>
+    had '<i>[L-10] Int casting `block.timestamp` can reduce the lifespan of a contract</i>' as 'Low' severity, but looking at the 'matches'
+    column (<i>N‑57_dup</i>), IllIllI-bot had the same finding as '<i>[N‑57] Contract timekeeping will break earlier than the Ethereum network itself will 
+    stop working</i>' with 'Non-critical' severity. A judge judging these two reports should give both '<i>[L-10]</i>' in this report, and '<i>[N‑57]</i>' in
+    IllIllI-bot's report, the same number of points.</p>
+
     <p><b>When to use this tool for judging</b>: The easiest way to use this tool is as a final check before submitting bot scores. Paste the winning bot's
-            markdown and IllIllI-bot's rubric and click the 'score' button, then compare the severities of the 'matches' with the severities
-            you gave the winning report. If they all match, you're done - great! If there are some discrepancies, drill down into the individual
-            findings and see why the scores don't match, and make sure that the issues in both reports got the same scores for those specific issues.</p>
+    markdown and IllIllI-bot's rubric and click the 'score' button, then compare the severities of the 'matches' with the severities
+    you gave the winning report. If they all match, you're done - great! If there are some discrepancies, drill down into the individual
+    findings and see why the scores don't match, and make sure that the issues in both reports got the same scores for those specific issues.</p>
+
     <table>
       <thead>
 	<tr>
