@@ -152,7 +152,17 @@ async function getHashToData(data) {
     </style>
   </head>
   <body>
-    
+    <p>The purpose of this tool is to identify cases where two bots have identified the same issue, but have used different headings to 
+    describe them, and or given them different severities. If two bots have found the same issue, they should be given the same
+    number of points during judging, regardless of their respective stated severities (though if one has excessivly inflated 
+    the severity, a penalty should probably be assessed).</p>
+
+    <p>This tool takes as input, the report being scored (markdown) and another bot's 'rubric' (JSON), and identifies known
+    aliases for the headings in report being scored, based on obfuscated data in the rubric. Try clicking the 'score' button
+    below the text areas which have been populated with data from a previous race to see how scoring works. This tool solely operates
+    on the data provided in the textareas below and does not perform any network-related operations, and is based on ideas from
+    <a href="https://blog.cloudflare.com/validating-leaked-passwords-with-k-anonymity/">this</a> article.</p>
+
     <form id='scoreForm' onsubmit='event.preventDefault(); score();'>
       <label for='textarea'>Report body markdown (without TOC) of the report to score:</label><br/>
       <textarea id='reportBody' rows='20' cols='120'>
