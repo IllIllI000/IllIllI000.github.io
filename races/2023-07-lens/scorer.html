@@ -28,7 +28,9 @@ async function score() {
   console.log(hashes)
   
   const reportBody = document.getElementById('reportBody').value
-  const reportBodyBlocks = reportBody.split(/(^|\n)###[\s\u00A0]/g)
+  const reportBodyBlocksTwo = reportBody.split(/(^|\n)##[\s\u00A0]/g)
+  const reportBodyBlocksThree = reportBody.split(/(^|\n)###[\s\u00A0]/g)
+  const	reportBodyBlocks = reportBodyBlocksTwo.length > reportBodyBlocksThree.length ? reportBodyBlocksTwo : reportBodyBlocksThree
   const entries = []
   const labels = ['disputed', 'sevInflated', 'outOfScope', 'gasNotQa', 'qaNotGas']
   for (let i = 1; i < 100; i++) {
