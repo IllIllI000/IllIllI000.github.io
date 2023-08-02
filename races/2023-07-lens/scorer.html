@@ -166,6 +166,13 @@ async function getHashToData(data) {
     on the data provided in the textareas below and does not perform any network-related operations, and is based on ideas from
     <a href="https://blog.cloudflare.com/validating-leaked-passwords-with-k-anonymity/">this</a> article.</p>
 
+    <p>A major difficulty in scoring bot races is that the top bots all have slightly different wording for their issues, so blind 
+    matching of titles will not work. This tool pushes the task of matching bot titles to the owner of each submission rubric,
+    where each rubric-generating bot owner has their own database of mappings of titles, and their rubric is generated based on their
+    mappings, rather than forcing each bot owner to use the same title. This is a lot more work for each rubric submitter, but
+    it leaks a lot less rule information to non-participants, and is thus more fair to the people who put in the work to gather
+    the data.</p>
+
     <form id='scoreForm' onsubmit='event.preventDefault(); score();'>
       <label for='textarea'>Report body markdown (without TOC) of the report to score:</label><br/>
       <textarea id='reportBody' rows='20' cols='120'>
