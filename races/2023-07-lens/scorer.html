@@ -28,9 +28,7 @@ async function score() {
   console.log(hashes)
   
   const reportBody = document.getElementById('reportBody').value
-  const reportBodyBlocksTwo = reportBody.split(/(^|\n)##[\s\u00A0]/g)
-  const reportBodyBlocksThree = reportBody.split(/(^|\n)###[\s\u00A0]/g)
-  const	reportBodyBlocks = reportBodyBlocksTwo.length > reportBodyBlocksThree.length ? reportBodyBlocksTwo : reportBodyBlocksThree
+  const	reportBodyBlocks = reportBody.split(/^|\n#+[\s\u00A0]+(?=.*[0-9]+)/g)
   const entries = []
   const labels = ['disputed', 'sevInflated', 'outOfScope', 'gasNotQa', 'qaNotGas']
   for (let i = 1; i < 100; i++) {
@@ -53,7 +51,7 @@ async function score() {
     const firstSpaceIndex = heading.search(/[\s\u00A0]/g)
     const title = heading.substr(firstSpaceIndex).trim()
     const label = heading.substr(0, firstSpaceIndex).trim()
-    const ruleClass = label.replaceAll(/[^HMLNRGD]/g, '').trim()
+    const ruleClass = label.replaceAll(/[^HMLNRGD]/g, '').trim().charAt(0)
     const entry = {'class': sanitizeStr(ruleClass), 'salt':salt, 'title': sanitizeStr(title)}
     //console.log(entry)
 /**
