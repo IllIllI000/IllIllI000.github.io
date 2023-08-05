@@ -161,15 +161,17 @@ async function getHashToData(data) {
     <p>This tool takes as input, the report being scored (markdown) and another bot's 'rubric' (JSON), and identifies known
     aliases for the headings in report being scored, based on obfuscated data in the rubric. Try clicking the 'score' button
     below the textareas, which have been populated with data from a previous race, to see how scoring works. This tool solely operates
-    on the data provided in the textareas below and does not perform any network-related operations, and is based on ideas from
-    <a href="https://blog.cloudflare.com/validating-leaked-passwords-with-k-anonymity/">this</a> article.</p>
+    on the data provided in the textareas below and does not perform any network-related operations. You can inspect the source by
+    right clicking and viewing the source, or can view it <a href="https://github.com/IllIllI000/IllIllI000.github.io/tree/main/races">here</a>. 
+    The tool is based on ideas from <a href="https://blog.cloudflare.com/validating-leaked-passwords-with-k-anonymity/">this</a> article.</p>
 
     <p>A major difficulty in scoring bot races is that the top bots all have slightly different wording for their issues, so blind 
     matching of titles will not work. This tool pushes the task of matching bot titles to the owner of each submission rubric,
     where each rubric-generating bot owner has their own database of mappings of titles, and their rubric is generated based on their
     mappings, rather than forcing each bot owner to use the same title. This is a lot more work for each rubric submitter, but
     it leaks a lot less rule information to non-participants, and is thus more fair to the people who put in the work to gather
-    and keep the data up to date.</p>
+    and keep the data up to date. This means that while the tool is open-source, the data from which the rubrics are generated
+    is private to each bot owner.</p>
 
     <form id='scoreForm' onsubmit='event.preventDefault(); score();'>
       <label for='textarea'>Report body markdown (without TOC) of the report to score:</label><br/>
