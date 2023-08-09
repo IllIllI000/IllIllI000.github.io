@@ -163,7 +163,7 @@ async function scoreReport(key) {
   //console.log(labels)
   var allData = new Map()  
   for (const block of reportBodyBlocks) {
-    let heading = decodeHtmlEntities(block.split('\n')[0].replaceAll(/<\/?[^>]+(>|$)/g, '').trim())
+    let heading = decodeHtmlEntities(block.split('\n')[0].replaceAll(/<\/?[^`>]+(>|$)/g, '').trim())
     if ('' === heading) {
       continue
     }
