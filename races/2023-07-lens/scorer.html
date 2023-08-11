@@ -5,6 +5,14 @@
 
 var reportCount = 0
 
+function makeAbbrElement(abbr, title) {
+  const abbrElement = document.createElement('abbr')
+  abbrElement.textContent = abbr
+  abbrElement.title = title
+  abbrElement.style.textDecoration = 'none'
+  return abbrElement
+}
+
 function addReportFormFields(label, body, scoresheet) {
   const reportsElement = document.getElementById('reports')
   const key = `report${reportCount++}`
@@ -128,9 +136,9 @@ function sanitizeStr(str) {
 }
 
 function decodeHtmlEntities(encodedString) {
-  const tempElement = document.createElement('textarea');
-  tempElement.innerHTML = encodedString;
-  return tempElement.value;
+  const tempElement = document.createElement('textarea')
+  tempElement.innerHTML = encodedString
+  return tempElement.value
 }
 
 var hashes
@@ -144,9 +152,9 @@ async function score() {
   console.log(hashes)
 
   const reportsElement = document.getElementById('reports')
-  const childIds = Array.from(reportsElement.children).map((childElement) => childElement.id);
-  const promises = childIds.map(scoreReport);
-  await Promise.all(promises);
+  const childIds = Array.from(reportsElement.children).map((childElement) => childElement.id)
+  const promises = childIds.map(scoreReport)
+  await Promise.all(promises)
 
 
   debugElement.appendChild(document.createElement('br'))
@@ -158,34 +166,98 @@ async function score() {
   for (const [key, value] of allData) {
     str += `${key} : ${JSON.stringify(value)}\n`
   }
-  const preElement = document.createElement('pre');
+  const preElement = document.createElement('pre')
   preElement.textContent = str
   debugElement.appendChild(preElement)
   /**/
 }
 
 function labelToRuleClass(label) {
+  if (!label) {
+    return null
+  }
   return label.toUpperCase().replaceAll(/[^HMLNRGD]/g, '').trim().charAt(0)
 }
 
 function labelToNumber(label) {
+  if (!label) {
+    return null
+  }
   return label.replaceAll(/[^0-9]/g, '').replaceAll(/^0+/g, '').trim()
 }
 
-function getCleanedLabel(label) {
+function labelToDisplayLabel(label) {
+  if (!label) {
+    return null
+  }
   return labelToRuleClass(label) + '-' + labelToNumber(label)
+}
+
+function mungeLabelAndTitle(label, title) {
+  const number = labelToNumber(label)
+  const ruleClass = labelToRuleClass(label)
+  const ruleClassSanitized = sanitizeStr(ruleClass)
+  const displayLabel = labelToDisplayLabel(label)
+  const titleSanitized = sanitizeStr(title)
+  const result = {'ruleNum':number, 'classDisplay':ruleClass, 'classSanitized':ruleClassSanitized, 
+		  'labelDisplay':displayLabel, 'titleSanitized':titleSanitized}
+  return result
+}
+function extractFindingsJson(reportBody) {
+  const result = []
+  const reportBodyBlocks = reportBody.split(/(?:^|\n)#+[ \u00A0]+(?=[^\n]*[0-9]+)/g)
+  for (const block of reportBodyBlocks) {
+    let heading = decodeHtmlEntities(block.split('\n')[0].replaceAll(/<\/?[^`>]+(>|$)/g, '').trim())
+    if ('' === heading) {
+      continue
+    }
+    const firstSpaceIndex = heading.search(/[\s\u00A0]/g)
+    const label = heading.substr(0, firstSpaceIndex).trim()
+    const title = heading.substr(firstSpaceIndex).trim()
+    const munged = mungeLabelAndTitle(label, title)
+    const findingsGroup = {'label':label, 'title':title, 'munged':munged}
+    result.push(findingsGroup)
+  }
+  return result
+}
+
+function extractScoresheetJson(scoresheet) {
+  const result = []
+  for (const line of scoresheet.split('\n')) {
+    const lineTrimmed = line.trim()
+    if ('' === lineTrimmed) {
+      continue
+    }
+    const parts = lineTrimmed.split('\t')
+    for (let i = 0; i < parts.length; ++i) {
+      parts[i] = parts[i].trim()
+    }
+    const label = parts[0]
+    const title = parts[1]
+    const score = parts[2]
+    const scoreDisplay = score ? score : '?'
+    const scoreRuleClass = labelToRuleClass(score)
+    let scoreCleaned = scoreRuleClass !== '' ? scoreRuleClass : scoreDisplay
+    if (/^(-[0-9]+|X)$/.test(scoreCleaned)) {
+      scoreCleaned = 'D'
+    }
+    const remaining = parts.slice(3)
+    const labelSimplified = labelToDisplayLabel(parts[0])
+    const munged = mungeLabelAndTitle(label, title)
+    const scoring = {'label':label, 'title':title, 'score':score, 'remaining':remaining, 'munged':munged}
+    scoring.munged.scoreDisplay = scoreDisplay
+    scoring.munged.scoreCleaned = scoreCleaned
+    result.push(scoring)
+  }
+  return result
 }
 
 async function scoreReport(key) {
   console.log(key)
-  const tbodyElement = document.getElementById(`${key}_tbody`)
-  tbodyElement.innerHTML = ''
-  const reportBody = document.getElementById(`${key}_body`).value
-  const	reportBodyBlocks = reportBody.split(/^|\n#+[\s\u00A0]+(?=.*[0-9]+)/g)
-  const entries = []
+
   const labels = ['disputed', 'sevInflated', 'outOfScope', 'gasNotQa', 'qaNotGas']
   for (let i = 1; i < 100; i++) {
-    const numStr = `${i}`.padStart(2, '0');
+    const numStr = `${i}`.padStart(2, '0')
     labels.push(`H‑${numStr}_dup`)
     labels.push(`M‑${numStr}_dup`)
     labels.push(`L‑${numStr}_dup`)
@@ -195,32 +267,30 @@ async function scoreReport(key) {
     labels.push(`D‑${numStr}_dup`)
   }
   //console.log(labels)
-  var labelToScore = new Map()
+
+  const tbodyElement = document.getElementById(`${key}_tbody`)
+  tbodyElement.innerHTML = ''
+  const reportBody = document.getElementById(`${key}_body`).value
+  const findingsJson = extractFindingsJson(reportBody)
+  //console.log(JSON.stringify(findingsJson, null, 2))
+  const entries = []
+  var displayLabelToScore = new Map()
   const scoresheet = document.getElementById(`${key}_scoresheet`).value
-  for (const line of scoresheet.split('\n')) {
-    const parts = line.split('\t')
-    const label = getCleanedLabel(parts[0])
-    labelToScore.set(label, parts)
+  const scoresheetJson = extractScoresheetJson(scoresheet)
+  //console.log(JSON.stringify(scoresheetJson, null, 2))
+  for (const scoring of scoresheetJson) {
+    displayLabelToScore.set(scoring.munged.labelDisplay, scoring)
   }
-  console.log(labelToScore)
-  var allData = new Map()  
-  for (const block of reportBodyBlocks) {
-    let heading = decodeHtmlEntities(block.split('\n')[0].replaceAll(/<\/?[^`>]+(>|$)/g, '').trim())
-    if ('' === heading) {
-      continue
-    }
-    const firstSpaceIndex = heading.search(/[\s\u00A0]/g)
-    const title = heading.substr(firstSpaceIndex).trim()
-    const label = heading.substr(0, firstSpaceIndex).trim()
-    const number = labelToNumber(label)
-    const ruleClass = labelToRuleClass(label)
-    const entry = {'class': sanitizeStr(ruleClass), 'salt':salt, 'title': sanitizeStr(title)}
+  console.log(displayLabelToScore)
+  var allData = new Map()
+  for (const findingsGroup of findingsJson) {
+    const entry = {'class': findingsGroup.munged.classSanitized, 'salt':salt, 'title': findingsGroup.munged.titleSanitized}
     //console.log(entry)
 /**
     const urlRegex = /\[.*?\]\((https?:\/\/[^\s\)]+)\)/g
     let match
     while ((match = urlRegex.exec(block)) !== null) {
-      const url = match[1].replaceAll(/\/\//g, '/').replace(/https?:\//, 'https://').replaceAll(/[\s\u00A0]/g, '');
+      const url = match[1].replaceAll(/\/\//g, '/').replace(/https?:\//, 'https://').replaceAll(/[\s\u00A0]/g, '')
       const entryWUrl = cloneObj(entry)
       entryWUrl.url = url
       const toCheck = []
@@ -228,17 +298,14 @@ async function scoreReport(key) {
       	const e2 = cloneObj(entry)
       	e2.label = label
       	toCheck.push(e2)
-      }    
+      }
     }
 /**/
     const toCheck = []
     for (const label of labels) {
       const e2 = cloneObj(entry)
       e2.label = label
-      const e2Sorted = {};
-      Object.keys(e2).sort().forEach((key) => {
-        e2Sorted[key] = e2[key];
-      });
+      const e2Sorted = sortObj(e2)
       toCheck.push(e2Sorted)
     }
     await getHashToData(toCheck).then((hashToLabeledEntry) => {
@@ -252,35 +319,35 @@ async function scoreReport(key) {
 	      }
 	      console.log(key,value)
 	      //hitLabels.push(value.label)
-      	const abbrElement = document.createElement('abbr')
-      	abbrElement.textContent = value.label.charAt(0)
-      	abbrElement.title = value.label
-      	abbrElement.style.textDecoration = 'none'
+      	const abbrElement = makeAbbrElement(value.label.charAt(0), value.label)
       	hits.push(abbrElement)
         classes.add(value.label.charAt(0))
       }
       const classesArr = Array.from(classes)
-      const trElement = document.createElement('tr');
+      const trElement = document.createElement('tr')
       let tdElement
       tdElement = document.createElement('td')
-      tdElement.textContent = label
+      tdElement.textContent = findingsGroup.label
       trElement.appendChild(tdElement)
 
       tdElement = document.createElement('td')
-      tdElement.style.borderBottom = '1px solid lightgray';
-      tdElement.textContent = title
+      tdElement.style.borderBottom = '1px solid lightgray'
+      tdElement.textContent = findingsGroup.title
       trElement.appendChild(tdElement)
 
 
-      const scoreParts = labelToScore.get(getCleanedLabel(label))
-      const scoreOrig = (scoreParts && 3 == scoreParts.length) ? scoreParts[2] : "?"
-      const scoreRuleClass = labelToRuleClass(scoreOrig)
-      //console.log(scoreOrig, scoreRuleClass)
-      const score = scoreRuleClass !== '' ? scoreRuleClass : scoreOrig
+      const scoring = displayLabelToScore.get(findingsGroup.munged.labelDisplay)
+      if (!scoring) {
+	tbodyElement.appendChild(trElement)
+	return
+      }
+      const score = scoring.munged.scoreCleaned
       tdElement = document.createElement('td')
-      tdElement.appendChild(document.createTextNode(score))
+      const abbrElement = makeAbbrElement(scoring.munged.scoreDisplay, scoring.munged.scoreCleaned)
+      tdElement.appendChild(abbrElement)
       trElement.appendChild(tdElement)
-      if ('I' == score) {
+      const scoreReported = findingsGroup.munged.ruleClass
+      if ('I' == score || 'D' == score) {
         // ignore
       } else if ('?' == score) {
         tdElement.style.background = 'red'
@@ -288,11 +355,13 @@ async function scoreReport(key) {
         tdElement.style.background = 'yellow'
       } else if (classesArr.length == 1 && '?' !== classesArr[0]) {
         const rubricScore = classesArr[0]
-        if ('D' == rubricScore && /^(-[0-9]+|X)$/.test(score)) {
-          // ignore alternate ways of specifying 'ignore'
-        } else if ('G' == rubricScore && ('N' == score || 'L' == score)) {
+	if ('G' == rubricScore && ('N' == score || 'L' == score)) {
+	  if ('G' != scoreReported) {
+	    // reported Gas as something else
+	    tdElement.style.background = 'red'
+	  }
           // allow 'L' or 'N' for 'G'
-        } else if ('R' == score && ('N' == rubricScore || 'L' == rubricScore)) {
+        } else if ('R' == score && ('N' == rubricScore || 'L' == rubricScore) && ('L' == scoreReported || 'N' == scoreReported)) {
           // allow 'R' for 'N' or 'L'
         } else if (score !== rubricScore) {
           tdElement.style.background = 'orange'
@@ -318,13 +387,20 @@ async function scoreReport(key) {
   
 }
 
+function sortObj(obj) {
+  const result = {}
+  Object.keys(obj).sort().forEach((key) => {
+    result[key] = obj[key]
+  })
+  return result
+}
 function cloneObj(obj) {
   return JSON.parse(JSON.stringify(obj))
 }
 
 async function getHashToData(data) {
-  const result = new Map();
-  const encoder = new TextEncoder();
+  const result = new Map()
+  const encoder = new TextEncoder()
   for (const obj of data) {
     const jsonString = JSON.stringify(obj)
     const dataBuffer = encoder.encode(jsonString)
@@ -333,9 +409,9 @@ async function getHashToData(data) {
     const hashHex = hashArray.map(byte => byte.toString(16).padStart(2, '0')).join('')
     const partialHash = hashHex.substr(0, 10)
     //console.log(partialHash, obj)
-    result.set(partialHash, obj);
+    result.set(partialHash, obj)
   }
-  return result;
+  return result
 }
 
     </script>
