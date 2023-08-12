@@ -63,11 +63,10 @@ function addReportFormFields(label, body, scoresheet) {
   botLabelInputElement.size = 20
   botLabelInputElement.value = label
   botLabelInputElement.id = `${key}_name`
-  /**
   botLabelInputElement.addEventListener('input', function() {
     const label = botLabelInputElement.value
     resultsHeadingElement.textContent = `${label}:`
-  })/**/
+  })
   const botLabelLabelElement = document.createElement('label')
   botLabelLabelElement.textContent = 'Bot name: '
   botLabelLabelElement.htmlFor = botLabelInputElement.id
