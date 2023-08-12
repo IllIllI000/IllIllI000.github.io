@@ -358,7 +358,7 @@ async function scoreReport(key) {
         scoring = {'munged':{'scoreDisplay':'','scoreCleaned': '_'}, 'botName':botName, 'label':findingsGroup.label}
       }
       const scoreReported = findingsGroup.munged.classDisplay
-      const scoreCleaned = scoring.munged.scoreCleaned == '_' ? scoreReported : scoring.munged.scoreCleaned
+      const scoreCleaned = ('_' == scoring.munged.scoreCleaned) ? scoreReported : scoring.munged.scoreCleaned
 
       if (0 != labelsHit.size) {
         const scoredFindingId = JSON.stringify(Array.from(labelsHit))
@@ -398,6 +398,8 @@ async function scoreReport(key) {
         } else if (scoreCleaned !== rubricScore) {
           tdElement.style.background = 'orange'
         }
+      } else if (0 === hits.length && '_' == scoring.munged.scoreCleaned) {
+        tdElement.style.border = 'solid yellow 3px'
       }
       tdElement.style.fontWeight = 'bold'
 
@@ -511,7 +513,8 @@ async function getHashToData(data) {
     <p>The scoresheet textarea (the tab-separated one) is where the judge would paste their scores from excel, to have the tool fill in
     the '<i>scores</i>' column. If an entry does not have any row in the scoresheet, it's assumed to be scored as the submission's reported
     severity. If the given issue is one of multiple values identified by the rubric, it will be colored yellow as a reminder to ensure that
-    the correct score was chosen. If there is only one rubric match and the score doesn't match the rubric, it will be colored orange as an
+    the correct score was chosen. If there is no scoresheet score (defaults to the reported severity) and no rubric score, the cell will be 
+    bordered with yellow. If there is only one rubric match and the score doesn't match the rubric, it will be colored orange as an
     indication that the issue should be investigated. If the score is unrecognized, it will be colored red. Hover your mouse over any non-blank cell
     of the '<i>scores</i>' column to see what score the tool interpreted the string as. Note that '<i>D</i>', <i>X</i>, and negative numbers are 
     all mean disputed entries (penalties), and 'I' is for ignored entries.</p>
