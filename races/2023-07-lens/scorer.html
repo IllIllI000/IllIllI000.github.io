@@ -86,7 +86,7 @@ function addReportFormFields(label, body, scoresheet) {
   botScoresheetTextareaElement.cols = 120
   botScoresheetTextareaElement.id = `${key}_scoresheet`
   const botScoresheetLabelElement = document.createElement('label')
-  botScoresheetLabelElement.textContent = 'Tab-separated judging scores for report (<label>\t<title>\t<score>):'
+  botScoresheetLabelElement.textContent = 'Optional tab-separated judging scores for report (<label>\t<title>\t<score>) (you can copy and paste the three cols from a spreadsheet):'
   botScoresheetLabelElement.htmlFor = botScoresheetTextareaElement.id
 
   const addAElement = document.createElement('a')
