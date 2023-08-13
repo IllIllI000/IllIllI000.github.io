@@ -37,7 +37,7 @@ function addReportFormFields(label, body, scoresheet) {
   const tableElement = document.createElement('table')
   const theadElement = tableElement.createTHead()
   const rowElement = theadElement.insertRow()
-  const headings = ['label', 'title', 'scores', 'rubric']
+  const headings = ['label', 'title', 'scores', 'rubric', 'differences']
   for (const heading of headings) {
     const headingElement = document.createElement('th')
     headingElement.textContent = heading
@@ -175,6 +175,29 @@ async function score() {
     }
     preElement.appendChild(
       document.createTextNode(scoredFindingId + ' ' + JSON.stringify(Object.fromEntries(scoreToScoreIds), setReplacer, 2) + '\n'))
+
+    for (const [score, scoreIds] of scoreToScoreIds) {
+      for (const scoreId of scoreIds) {
+        const elemId = scoreId.split(':').slice(0,3).join(':')
+        const classSanitized = scoreId.split(':')[1]
+        const elem = document.getElementById(elemId)
+        //console.log(elemId, elem)
+        const others = new Map(scoreToScoreIds)
+        others.delete(score)
+        const scores = new Set(scoreToScoreIds.keys())
+        scores.add(score)
+        scores.delete('D')
+        if (1 < scores.size) {
+          elem.style.border = 'solid red 3px'
+        } else if ('d' != classSanitized) {
+          //elem.style.border = 'solid orange 3px'
+          continue
+        } else {
+          continue
+        }
+        elem.textContent = score + ' vs ' + JSON.stringify(Object.fromEntries(others), setReplacer)
+      }
+    }
   }
 
   debugElement.appendChild(document.createElement('br'))
@@ -361,7 +384,7 @@ async function scoreReport(key) {
 
       if (0 != labelsHit.size) {
         const scoredFindingId = JSON.stringify(Array.from(labelsHit))
-        const scoreId = scoring.botName + ':' + scoring.label + ':' + scoreCleaned + (entry.url ? (':' + entry.url) : '')
+        const scoreId = scoring.botName + ':' + findingsGroup.munged.classSanitized + ':' + scoring.label //+ ':' + scoreCleaned + (entry.url ? (':' + entry.url) : '')
         let scoreToScoredIds = allScoredData.get(scoredFindingId)
         if (!scoreToScoredIds) {
           scoreToScoredIds = new Map()
@@ -412,6 +435,10 @@ async function scoreReport(key) {
           tdElement.appendChild(elem)
         }
       }
+      trElement.appendChild(tdElement)
+
+      tdElement = document.createElement('td')
+      tdElement.id = scoring.botName + ':' + findingsGroup.munged.classSanitized + ':' + scoring.label
       trElement.appendChild(tdElement)
 
       tbodyElement.appendChild(trElement)
@@ -536,7 +563,7 @@ async function getHashToData(data) {
     finding was scored as <i>L</i>, but <i>IllIllI-bot</i>'s <i>[N‑48]</i>, which was the same issue, was given a lower score of <i>N</i>. 
     Since the rubric properly identified them as the same issue, they should be given the same score. This can be accomplished by adding
     the following line to the end of <i>0x6980-bot</i>'s scoresheet, and re-running the scoring: 
-    <i>[L-10]<span style="white-space: pre;tab-size:4">&#9;</span>Int casting `block.timestamp` can reduce the lifespan of a contract<span style="white-space: pre;tab-size:4">&#9;<span>N</i></p>
+    <i>[L-10]<span style="white-space: pre;tab-size:4">&#9;</span>Int casting `block.timestamp` can reduce the lifespan of a contract<span style="white-space: pre;tab-size:4">&#9;<span>N</i>. The same information as is below is displayed for the relevant findings in the '<i>differences</i> column in the tables above.</p>
     <h3>Scoring differences</h3>
     <pre id='differences'></pre>
     <div id='debug'></div>
