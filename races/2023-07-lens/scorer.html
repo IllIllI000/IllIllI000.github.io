@@ -7,7 +7,7 @@ var reportCount = 0
 var salt
 var hashes
 var urlCount = 0
-var allScoredData = new Map()
+var allScoredData
 
 function makeAbbrElement(abbr, title) {
   if ('' == abbr) {
@@ -163,6 +163,7 @@ async function score() {
   salt = rubric.salt
   //console.log(hashes)
 
+  allScoredData = new Map()
   const reportsElement = document.getElementById('reports')
   const childIds = Array.from(reportsElement.children).map((childElement) => childElement.id)
   const promises = childIds.map(scoreReport)
@@ -279,6 +280,9 @@ function extractScoresheetJson(scoresheet, botName) {
     }
     const label = parts[0]
     const title = parts[1]
+    if (!label || !title) {
+      continue
+    }
     const score = parts[2]
     const scoreDisplay = score ? score : ''
     const scoreRuleClass = labelToRuleClass(score)
