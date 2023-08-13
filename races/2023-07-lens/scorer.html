@@ -168,20 +168,16 @@ async function score() {
   const promises = childIds.map(scoreReport)
   await Promise.all(promises)
 
-  const preElement = document.getElementById('differences')
   for (const [scoredFindingId, scoreToScoreIds] of allScoredData) {
     if (1 >= scoreToScoreIds.size) {
       continue
     }
-    preElement.appendChild(
-      document.createTextNode(scoredFindingId + ' ' + JSON.stringify(Object.fromEntries(scoreToScoreIds), setReplacer, 2) + '\n'))
-
     for (const [score, scoreIds] of scoreToScoreIds) {
       for (const scoreId of scoreIds) {
         const elemId = scoreId.split(':').slice(0,3).join(':')
         const classSanitized = scoreId.split(':')[1]
         const elem = document.getElementById(elemId)
-        //console.log(elemId, elem)
+        if (!elem) console.log(elemId, elem)
         const others = new Map(scoreToScoreIds)
         others.delete(score)
         const scores = new Set(scoreToScoreIds.keys())
@@ -540,31 +536,33 @@ async function getHashToData(data) {
     severity. If the given issue is one of multiple values identified by the rubric, it will be colored yellow as a reminder to ensure that
     the correct score was chosen. If there is no scoresheet score (defaults to the reported severity) and no rubric score, the cell will be 
     bordered with yellow. If there is only one rubric match and the score doesn't match the rubric, it will be colored orange as an
-    indication that the issue should be investigated. If the score is unrecognized, it will be colored red. Hover your mouse over any non-blank cell
-    of the '<i>scores</i>' column to see what score the tool interpreted the string as. Note that '<i>D</i>', <i>X</i>, and negative numbers are 
-    all mean disputed entries (penalties), and 'I' is for ignored entries.</p>
+    indication that the issue should be investigated. If the score is unrecognized, it will be colored red. Hover your mouse over any 
+    non-blank cell of the '<i>scores</i>' column to see what score the tool interpreted the string as. Note that '<i>D</i>', <i>X</i>, and 
+    negative numbers are all mean disputed entries (penalties), and 'I' is for ignored entries.</p>
 
-    <p>The purpose of this tool is to ensure that two reports with the same issue get the same score for that issue. For example, the winning bot
-    had '<i>[L-10] Int casting `block.timestamp` can reduce the lifespan of a contract</i>' as 'Low' severity, but looking at the '<i>rubric</i>'
-    column (<i>N‑57_dup</i>), IllIllI-bot had the same finding as '<i>[N‑57] Contract timekeeping will break earlier than the Ethereum network itself will 
-    stop working</i>' with 'Non-critical' severity. A judge judging these two reports should give both '<i>[L-10]</i>' in this report, and '<i>[N‑57]</i>' in
-    IllIllI-bot's report, the same number of points.</p>
+    <p>The '<i>differences</i>' column uses the entry's score (either the scoresheet severity, or the submitted severity if one wasn't given),
+    and compares that severity to all other bots' severities for that entry, where the rubric identified the issues as being the same. For
+    example, the first cell highlighted in red in that column is '<i>L vs {"N":["IllIllI-bot:n:[N‑48]"]}</i>', which means that the severity
+    of the current row is '<i>L</i>', but IllIllI-bot has the same issue for entry '<i>[N‑48]</i>', but there it was given a severity of 
+    '<i>N</i>' instead. Since the rubric properly identified them as the same issue, they should be given the same score. This can be 
+    accomplished by adding the following line to the end of 0x6980-bot's scoresheet, and re-running the scoring: 
+    <i>[L-10]<span style="white-space: pre;tab-size:4">&#9;</span>Int casting `block.timestamp` can reduce the lifespan of a
+    contract<span style="white-space: pre;tab-size:4">&#9;<span>N</i>.
 
-    <p><b>When to use this tool for judging</b>: The easiest way to use this tool is as a final check before submitting bot scores. Paste the winning bot's
-    markdown and IllIllI-bot's rubric and click the 'score' button, then compare the severities of the 'rubric' with the severities
-    you gave the winning report. If they all match, you're done - great! If there are some discrepancies, drill down into the individual
-    findings and see why the scores don't match, and make sure that the issues in both reports got the same scores for those specific issues.</p>
+    <p>The purpose of this tool is to ensure that two reports with the same issue get the same score for that issue. For example, the winning 
+    bot had '<i>[L-10] Int casting `block.timestamp` can reduce the lifespan of a contract</i>' as 'Low' severity, but looking at the 
+    '<i>rubric</i>' column (<i>N‑57_dup</i>), IllIllI-bot had the same finding as '<i>[N‑57] Contract timekeeping will break earlier than the 
+    Ethereum network itself will stop working</i>' with 'Non-critical' severity. A judge judging these two reports should give both 
+    '<i>[L-10]</i>' in this report, and '<i>[N‑57]</i>' in IllIllI-bot's report, the same number of points.</p>
+
+    <p><b>When to use this tool for judging</b>: The easiest way to use this tool is as a final check before submitting bot scores. Paste the 
+    winning bot's markdown and IllIllI-bot's rubric (and your scoring columns from your spreadsheed if you have one) and click the 'score' 
+    button, then check each of the non-white cells. If there are none, you're done - great! If there are some, drill down into the individual 
+    findings and see why the scores don't match, and make sure that the issues in both reports got the same scores for those specific issues.
+    Make sure that if you don't have enough time to look at everything, that you at least address the entries in red.</p>
 
     <div id='results'></div>
 
-    <p><b>How to read the differences</b>: This section points out cases where the rubric identified two findings as being the same issue,
-    but where they were scored differently. Looking at the third entry (<i>N‑57_dup</i>), it says that <i>0x6980-bot</i>'s <i>[L-10]</i> 
-    finding was scored as <i>L</i>, but <i>IllIllI-bot</i>'s <i>[N‑48]</i>, which was the same issue, was given a lower score of <i>N</i>. 
-    Since the rubric properly identified them as the same issue, they should be given the same score. This can be accomplished by adding
-    the following line to the end of <i>0x6980-bot</i>'s scoresheet, and re-running the scoring: 
-    <i>[L-10]<span style="white-space: pre;tab-size:4">&#9;</span>Int casting `block.timestamp` can reduce the lifespan of a contract<span style="white-space: pre;tab-size:4">&#9;<span>N</i>. The same information as is below is displayed for the relevant findings in the '<i>differences</i> column in the tables above.</p>
-    <h3>Scoring differences</h3>
-    <pre id='differences'></pre>
     <div id='debug'></div>
     
     <script>
