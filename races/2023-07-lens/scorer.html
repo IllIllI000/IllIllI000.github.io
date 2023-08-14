@@ -88,30 +88,25 @@ function addReportFormFields(label, body, scoresheet) {
   botScoresheetLabelElement.textContent = 'Optional tab-separated judging scores for report (<label>\t<title>\t<score>) (you can copy and paste the three cols from a spreadsheet):'
   botScoresheetLabelElement.htmlFor = botScoresheetTextareaElement.id
 
-  const addAElement = document.createElement('a')
-  addAElement.href = '#'
-  addAElement.textContent = '+'
-  addAElement.onclick = function() { 
-    event.preventDefault()
-    addReportFormFields()
-  }
-  addAElement.style.textDecoration = 'none'
   const removeAElement = document.createElement('a')
   removeAElement.href = '#'
-  removeAElement.textContent = '-'
+  removeAElement.textContent = '[delete]'
   removeAElement.onclick = function() { 
     event.preventDefault()
     reportsElement.removeChild(containerElement)
     allResultsDivElement.removeChild(resultsDivElement)
   }
   removeAElement.style.textDecoration = 'none'
+  removeAElement.style.paddingLeft = '1em'
 
   containerElement.appendChild(botLabelLabelElement)
   containerElement.appendChild(botLabelInputElement)
+  containerElement.appendChild(removeAElement)
   containerElement.appendChild(document.createElement('br'))
 
   const reportContainerElement = document.createElement('div')
   reportContainerElement.appendChild(botReportLabelElement)
+
   reportContainerElement.appendChild(document.createElement('br'))
   reportContainerElement.appendChild(botReportTextareaElement)
   reportContainerElement.style.cssFloat = 'left'
@@ -122,12 +117,6 @@ function addReportFormFields(label, body, scoresheet) {
   scoresheetContainerElement.appendChild(botScoresheetTextareaElement)
   containerElement.appendChild(scoresheetContainerElement)
 
-  containerElement.appendChild(document.createElement('br'))
-  containerElement.appendChild(document.createElement('br'))
-  containerElement.appendChild(document.createTextNode('Add/remove reports: '))
-  containerElement.appendChild(addAElement)
-  containerElement.appendChild(document.createTextNode(' / '))
-  containerElement.appendChild(removeAElement)
   containerElement.appendChild(document.createElement('br'))
   containerElement.appendChild(document.createElement('br'))
   reportsElement.append(containerElement)
@@ -518,6 +507,8 @@ async function getHashToData(data) {
       <br/><br/>
 
       <div id='reports'></div>
+
+      <a href='#' onclick='event.preventDefault(); addReportFormFields();'>[add]</a> another report<br/><br/>
 
       <input type='submit' value='score'>
     </form>
