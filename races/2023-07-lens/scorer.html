@@ -143,7 +143,13 @@ const setReplacer = (key, value) => {
   return value
 }
 
+var isScoring = false
 async function score() {
+  if (isScoring) {
+    return
+  }
+  isScoring = true
+  
   const debugElement = document.getElementById('debug')
   debugElement.innerHTML = ''
 
@@ -188,6 +194,7 @@ async function score() {
   debugElement.appendChild(document.createElement('br'))
   debugElement.appendChild(document.createTextNode('Done'))
   debugElement.appendChild(document.createElement('br'))
+  isScoring = false
 }
 
 function labelToRuleClass(label) {
