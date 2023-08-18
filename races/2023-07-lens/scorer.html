@@ -127,7 +127,7 @@ function addReportFormFields(label, body, scoresheet) {
 
 function sanitizeStr(str) {
   //return str.toLowerCase().replaceAll(/[\s\u00A0]+/g,' ').replaceAll(/[^a-z0-9\.\_\/: \-\)\(\[\]#]/g, '').trim()
-  return str.toLowerCase().replaceAll(/[\s\u00A0]+/g,' ').replaceAll(/[^a-z0-9 ]/g, ' ').replaceAll(/\s+/g, ' ').trim()
+  return str.toLowerCase().replaceAll(/[\s\u00A0]+/g,' ').replaceAll(/`/g, '').replaceAll(/[^a-z0-9 ]/g, ' ').replaceAll(/\s+/g, ' ').trim()
 }
 
 function decodeHtmlEntities(encodedString) {
@@ -216,7 +216,12 @@ function labelToDisplayLabel(label) {
   if (!label) {
     return null
   }
-  return labelToRuleClass(label) + '-' + labelToNumber(label)
+  const ruleClass = labelToRuleClass(label)
+  const number = labelToNumber(label)
+  if (!ruleClass || !number || '' === ruleClass || '' === number) {
+    return null
+  }
+  return ruleClass + '-' + number
 }
 
 function mungeLabelAndTitle(label, title) {
@@ -229,6 +234,24 @@ function mungeLabelAndTitle(label, title) {
                   'labelDisplay':displayLabel, 'titleSanitized':titleSanitized}
   return result
 }
+
+function mungeLabelTitleAndScore(label, title, score) {
+  const result = mungeLabelAndTitle(label, title, score)
+  const scoreDisplay = score ? score : ''
+  const scoreRuleClass = labelToRuleClass(score)
+  let scoreCleaned = scoreDisplay !== '' ? scoreRuleClass : '_'
+  if ('' == scoreCleaned) {
+    scoreCleaned = '?'
+  }
+  if (/^(-[0-9]+|X)$/.test(scoreDisplay.toUpperCase())) {
+    scoreCleaned = 'D'
+  }
+  result.scoreDisplay = scoreDisplay
+  result.scoreCleaned = scoreCleaned
+  return result
+}
+
+var botTitleSanitizedToFindingsGroup = new Map()
 function extractFindingsJson(reportBody, botName) {
   const result = []
   const reportBodyBlocks = reportBody.split(/(?:^|\n)#+[ \u00A0]+(?=[^\n]*[0-9]+)/g)
@@ -260,12 +283,22 @@ function extractFindingsJson(reportBody, botName) {
 
     const findingsGroup = {'label':label, 'title':title, 'munged':munged, 'instances':instances, 'botName':botName}
     result.push(findingsGroup)
+
+    botTitleSanitizedToFindingsGroup.set(botName + '-' +munged.titleSanitized,
+                                         findingsGroup)
   }
   return result
 }
 
 function extractScoresheetJson(scoresheet, botName) {
+  const colBased = extractScoresheetJsonCols(scoresheet, botName)
+  const kbBased = extractScoresheetJsonKb(scoresheet, botName)
+  return colBased.length > kbBased.length ? colBased : kbBased
+}
+
+function extractScoresheetJsonCols(scoresheet, botName) {
   const result = []
+  const stillMissing = []
   for (const line of scoresheet.split('\n')) {
     const lineTrimmed = line.trim()
     if ('' === lineTrimmed) {
@@ -278,25 +311,73 @@ function extractScoresheetJson(scoresheet, botName) {
     const label = parts[0]
     const title = parts[1]
     if (!label || !title) {
+      stillMissing.push(lineTrimmed)
       continue
     }
     const score = parts[2]
-    const scoreDisplay = score ? score : ''
-    const scoreRuleClass = labelToRuleClass(score)
-    let scoreCleaned = scoreDisplay !== '' ? scoreRuleClass : '_'
-    if ('' == scoreCleaned) {
-      scoreCleaned = '?'
-    }
-    if (/^(-[0-9]+|X)$/.test(scoreDisplay.toUpperCase())) {
-      scoreCleaned = 'D'
-    }
     const remaining = parts.slice(3)
-    const munged = mungeLabelAndTitle(label, title)
+    const munged = mungeLabelTitleAndScore(label, title, score)
     const scoring = {'label':label, 'title':title, 'score':score, 'remaining':remaining, 'munged':munged, 'botName':botName}
-    scoring.munged.scoreDisplay = scoreDisplay
-    scoring.munged.scoreCleaned = scoreCleaned
+    const fg = botTitleSanitizedToFindingsGroup.get(botName + '-'+ scoring.munged.titleSanitized)
+    if (!fg) {
+      stillMissing.push(lineTrimmed)
+      continue
+    }
     result.push(scoring)
   }
+
+  if (0 != stillMissing.length) {
+    console.log(stillMissing)
+    alert(`titles matching the following score titles weren't found in the report:\n - ${stillMissing.join('\n - ')}`)
+  }
+
+  return result
+}
+
+// format of https://github.com/GalloDaSballo/string-regex/blob/c2cedec33e0af791e159a1254a9f34242466f80b/src/lib.ts#L91-L95
+function extractScoresheetJsonKb(scoresheet, botName) {
+  const result = []
+  const lines = scoresheet.split('\n')
+  const stillMissing = []
+  for (let i = 1; i < lines.length; i += 2) {
+    const scoreStr = lines[i].trim()
+    const headingStr = lines[i - 1].trim()
+    if ('' === scoreStr || '' === headingStr) {
+      continue
+    }
+
+    const parts = scoreStr.split(/[\s\u00A0]+/)
+    const score = parts[0]
+    const remaining = parts.slice(1).join(' ').trim()
+
+    const firstSpaceIndex = headingStr.search(/[\s\u00A0]/g)
+    let label = headingStr.substr(0, firstSpaceIndex).trim()
+    const title = labelToDisplayLabel(label) ? headingStr.substr(firstSpaceIndex).trim() : headingStr
+
+    if (!label || !title) {
+      stillMissing.push(headingStr)
+      continue
+    }
+    const munged = mungeLabelTitleAndScore(label, title, score)
+    const scoring = {'label':label, 'title':title, 'score':score, 'remaining':remaining, 'munged':munged, 'botName':botName}
+    const fg = botTitleSanitizedToFindingsGroup.get(botName + '-'+ scoring.munged.titleSanitized)
+    if (fg && !scoring.munged.labelDisplay) {
+      scoring.label = fg.label
+      scoring.munged = mungeLabelTitleAndScore(fg.label, title, score)
+    } 
+    if (!scoring.munged.labelDisplay) {
+      stillMissing.push(headingStr)
+      continue
+    }
+
+    result.push(scoring)
+  }
+  
+  if (0 != stillMissing.length) {
+    console.log(stillMissing)
+    alert(`Titles matching the following score titles weren't found in the report:\n - ${stillMissing.join('\n - ')}`)
+  }
+
   return result
 }
 
@@ -304,7 +385,7 @@ async function scoreReport(key) {
   //console.log(key)
 
   const labels = []//'disputed', 'sevInflated', 'outOfScope', 'gasNotQa', 'qaNotGas']
-  for (let i = 1; i < 100; i++) {
+  for (let i = 1; i < 100; ++i) {
     const numStr = `${i}`.padStart(2, '0')
     labels.push(`H‑${numStr}_dup`)
     labels.push(`M‑${numStr}_dup`)
@@ -506,7 +587,7 @@ async function getHashToData(data) {
     is private to each bot owner.</p>
 
     <p>In cases where the rubric doesn't have an entry for a finding, or when a rubric is not provided, the tool uses approximate title
-    matching in order to identify duplicates where possible.</p>
+    matching in order to identify duplicates, where possible.</p>
 
     <form id='scoreForm' onsubmit='event.preventDefault(); score();'>
       <label for='textarea'>Optional rubric from the bottom of the IllIllI-bot report:</label><br/>
