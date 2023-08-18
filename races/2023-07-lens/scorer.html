@@ -153,7 +153,8 @@ async function score() {
   const debugElement = document.getElementById('debug')
   debugElement.innerHTML = ''
 
-  const rubric = JSON.parse(document.getElementById('rubric').value)
+  const rubricStr = document.getElementById('rubric').value.trim()
+  const rubric = rubricStr != "" ? JSON.parse(rubricStr) : {}
   hashes = new Set(rubric.hashes)
   salt = rubric.salt
   //console.log(hashes)
@@ -302,7 +303,7 @@ function extractScoresheetJson(scoresheet, botName) {
 async function scoreReport(key) {
   //console.log(key)
 
-  const labels = ['disputed', 'sevInflated', 'outOfScope', 'gasNotQa', 'qaNotGas']
+  const labels = []//'disputed', 'sevInflated', 'outOfScope', 'gasNotQa', 'qaNotGas']
   for (let i = 1; i < 100; i++) {
     const numStr = `${i}`.padStart(2, '0')
     labels.push(`H‑${numStr}_dup`)
@@ -377,21 +378,20 @@ async function scoreReport(key) {
       const scoreReported = findingsGroup.munged.classDisplay
       const scoreCleaned = ('_' == scoring.munged.scoreCleaned) ? scoreReported : scoring.munged.scoreCleaned
 
-      if (0 != labelsHit.size) {
-        const scoredFindingId = JSON.stringify(Array.from(labelsHit))
-        const scoreId = scoring.botName + ':' + findingsGroup.munged.classSanitized + ':' + scoring.label //+ ':' + scoreCleaned + (entry.url ? (':' + entry.url) : '')
-        let scoreToScoredIds = allScoredData.get(scoredFindingId)
-        if (!scoreToScoredIds) {
-          scoreToScoredIds = new Map()
-          allScoredData.set(scoredFindingId, scoreToScoredIds)
-        }
-        let scoreIds = scoreToScoredIds.get(scoreCleaned)
-        if (!scoreIds) {
-          scoreIds = new Set()
-          scoreToScoredIds.set(scoreCleaned, scoreIds)
-        }
-        scoreIds.add(scoreId)
+      const scoredFindingId = (0 != labelsHit.size) ? JSON.stringify(Array.from(labelsHit)) : findingsGroup.munged.titleSanitized
+      const scoreId = scoring.botName + ':' + findingsGroup.munged.classSanitized + ':' + scoring.label //+ ':' + scoreCleaned + (entry.url ? (':' + entry.url) : '')
+      let scoreToScoredIds = allScoredData.get(scoredFindingId)
+      if (!scoreToScoredIds) {
+        scoreToScoredIds = new Map()
+        allScoredData.set(scoredFindingId, scoreToScoredIds)
       }
+      let scoreIds = scoreToScoredIds.get(scoreCleaned)
+      if (!scoreIds) {
+        scoreIds = new Set()
+        scoreToScoredIds.set(scoreCleaned, scoreIds)
+      }
+      scoreIds.add(scoreId)
+
       tdElement = document.createElement('td')
       const abbrElement = makeAbbrElement(scoring.munged.scoreDisplay, /*scoring.botName + ':' + */scoreCleaned)
       tdElement.appendChild(abbrElement)
@@ -539,7 +539,7 @@ async function getHashToData(data) {
     the correct score was chosen. If there is no scoresheet score (defaults to the reported severity) and no rubric score, the cell will be 
     bordered with yellow. If there is only one rubric match and the score doesn't match the rubric, it will be colored orange as an
     indication that the issue should be investigated. If the score is unrecognized, it will be colored red. Hover your mouse over any 
-    non-blank cell of the '<i>scores</i>' column to see what score the tool interpreted the string as. Note that '<i>D</i>', <i>X</i>, and 
+    non-blank cell of the '<i>scores</i>' column to see what score the tool interpreted the string as. Note that '<i>D</i>', '<i>X</i>', and 
     negative numbers are all mean disputed entries (penalties), and 'I' is for ignored entries.</p>
 
     <p>The '<i>differences</i>' column uses the entry's score (either the scoresheet severity, or the submitted severity if one wasn't given),
