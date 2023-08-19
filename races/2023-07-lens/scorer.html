@@ -461,16 +461,17 @@ async function scoreReport(key) {
           continue
         }
         //console.log(hash,variant)
-        classes.add(variant.label.charAt(0))
+        const rubricScore = variant.label.charAt(0)
+        classes.add(rubricScore)
         labelsHit.add(variant.label)
-        if (!isPassthroughScore || scoreCleaned === variant.label.charAt(0)) {
-          const abbrElement = makeAbbrElement(variant.label.charAt(0), variant.label)
+        if (!isPassthroughScore || scoreCleaned === rubricScore) {
+          const abbrElement = makeAbbrElement(rubricScore, variant.label)
           hits.push(abbrElement)
         } else {
           const aElement = document.createElement('a')
           aElement.href = '#'
-          aElement.textContent = variant.label.charAt(0)
-          aElement.title = `Issue does not have an entry in the scoresheet and is using the stated severity (${scoreCleaned}). Click to add the rubric's (${variant.label}) severity (${variant.label.charAt(0)}) to the scoresheet (you must rescore afterwards)`
+          aElement.textContent = rubricScore
+          aElement.title = `Issue does not have an entry in the scoresheet and is using the stated severity (${scoreCleaned}). Click to add the rubric's (${variant.label}) severity (${rubricScore}) to the scoresheet (you must rescore after you've finished all scoresheet updates)`
           aElement.onclick = function() {
             event.preventDefault()
             addToScoresheet(key, findingsGroup, scoreCleaned)
@@ -515,7 +516,7 @@ async function scoreReport(key) {
         const aElement = document.createElement('a')
         aElement.href = '#'
         aElement.textContent = scoreCleaned
-        aElement.title = `Issue does not have an entry in the scoresheet and is using the stated severity (${scoreCleaned}). Click to add this issue's stated severity (${scoreCleaned}) to the scoresheet (you must re-score afterwards)`
+        aElement.title = `Issue does not have an entry in the scoresheet and is using the stated severity (${scoreCleaned}). Click to add this issue's stated severity (${scoreCleaned}) to the scoresheet (you must re-score after you've finished all scoresheet updates)`
         const thisTd = tdElement
         aElement.onclick = function() {
           event.preventDefault()
