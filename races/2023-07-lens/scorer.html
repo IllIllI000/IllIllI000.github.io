@@ -529,6 +529,7 @@ async function scoreReport(key) {
       } else {
         const abbrElement = makeAbbrElement(scoring.munged.scoreDisplay, /*scoring.botName + ':' + */scoreCleaned)
         tdElement.appendChild(abbrElement)
+        tdElement.style.fontWeight = 'bold'
       }
       trElement.appendChild(tdElement)
       if ('I' == scoreCleaned || 'D' == scoreCleaned) {
@@ -553,7 +554,6 @@ async function scoreReport(key) {
       } else if (0 === hits.length && '_' == scoring.munged.scoreCleaned) {
         tdElement.style.border = 'solid yellow 3px'
       }
-      tdElement.style.fontWeight = 'bold'
 
       tdElement = document.createElement('td')
       const isHasRubric = (0 != hits.length)
