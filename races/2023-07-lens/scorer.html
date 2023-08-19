@@ -523,6 +523,7 @@ async function scoreReport(key) {
           thisTd.removeChild(aElement)
           //thisTd.textContent = scoreCleaned
           thisTd.appendChild(makeAbbrElement(scoreReported, scoreCleaned))
+          thisTd.style.fontWeight = 'bold'
           addToScoresheet(key, findingsGroup, scoreCleaned)
         }
         tdElement.appendChild(aElement)
