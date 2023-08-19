@@ -8,6 +8,8 @@ var salt
 var hashes
 var urlCount = 0
 var allScoredData
+var botTitleSanitizedToFindingsGroup
+var keyToScoresheetFormat
 
 function makeAbbrElement(abbr, title) {
   if ('' == abbr) {
@@ -136,6 +138,12 @@ function decodeHtmlEntities(encodedString) {
   return tempElement.value
 }
 
+function htmlEncode(text) {
+  var div = document.createElement('div')
+  div.textContent = text
+  return div.innerHTML
+}
+
 const setReplacer = (key, value) => {
   if (value instanceof Set) {
     return [...value] // Convert set to array
@@ -160,6 +168,8 @@ async function score() {
   //console.log(hashes)
 
   allScoredData = new Map()
+  botTitleSanitizedToFindingsGroup = new Map()
+  keyToScoresheetFormat = new Map()
   const reportsElement = document.getElementById('reports')
   const childIds = Array.from(reportsElement.children).map((childElement) => childElement.id)
   const promises = childIds.map(scoreReport)
@@ -251,7 +261,6 @@ function mungeLabelTitleAndScore(label, title, score) {
   return result
 }
 
-var botTitleSanitizedToFindingsGroup = new Map()
 function extractFindingsJson(reportBody, botName) {
   const result = []
   const reportBodyBlocks = reportBody.split(/(?:^|\n)#+[ \u00A0]+(?=[^\n]*[0-9]+)/g)
@@ -290,15 +299,17 @@ function extractFindingsJson(reportBody, botName) {
   return result
 }
 
-function extractScoresheetJson(scoresheet, botName) {
-  const colBased = extractScoresheetJsonCols(scoresheet, botName)
-  const kbBased = extractScoresheetJsonKb(scoresheet, botName)
-  return colBased.length > kbBased.length ? colBased : kbBased
+function extractScoresheetJson(scoresheet, botName, stillMissing) {
+  const stillMissingCols = []
+  const stillMissingKb = []
+  const colBased = extractScoresheetJsonCols(scoresheet, botName, stillMissingCols)
+  const kbBased = extractScoresheetJsonKb(scoresheet, botName, stillMissingKb)
+  const isColBased = colBased.length >= kbBased.length
+  return [isColBased ? colBased : kbBased, isColBased, isColBased ? stillMissingCols : stillMissingKb]
 }
 
-function extractScoresheetJsonCols(scoresheet, botName) {
+function extractScoresheetJsonCols(scoresheet, botName, stillMissing) {
   const result = []
-  const stillMissing = []
   for (const line of scoresheet.split('\n')) {
     const lineTrimmed = line.trim()
     if ('' === lineTrimmed) {
@@ -326,19 +337,13 @@ function extractScoresheetJsonCols(scoresheet, botName) {
     result.push(scoring)
   }
 
-  if (0 != stillMissing.length) {
-    console.log(stillMissing)
-    alert(`titles matching the following score titles weren't found in the report:\n - ${stillMissing.join('\n - ')}`)
-  }
-
   return result
 }
 
 // format of https://github.com/GalloDaSballo/string-regex/blob/c2cedec33e0af791e159a1254a9f34242466f80b/src/lib.ts#L91-L95
-function extractScoresheetJsonKb(scoresheet, botName) {
+function extractScoresheetJsonKb(scoresheet, botName, stillMissing) {
   const result = []
   const lines = scoresheet.split('\n')
-  const stillMissing = []
   for (let i = 1; i < lines.length; i += 2) {
     const scoreStr = lines[i].trim()
     const headingStr = lines[i - 1].trim()
@@ -372,13 +377,21 @@ function extractScoresheetJsonKb(scoresheet, botName) {
 
     result.push(scoring)
   }
-  
-  if (0 != stillMissing.length) {
-    console.log(stillMissing)
-    alert(`Titles matching the following score titles weren't found in the report:\n - ${stillMissing.join('\n - ')}`)
-  }
 
   return result
+}
+
+function addToScoresheet(key, findingsGroup, score) {
+  const scoresheetTextareaElement = document.getElementById(`${key}_scoresheet`)
+  let value
+  if (keyToScoresheetFormat.get(key)) {
+    value = scoresheetTextareaElement.value.trim() + 
+      `\n${decodeHtmlEntities(findingsGroup.label)}\t${decodeHtmlEntities(findingsGroup.title)}\t${score}`
+  } else {
+    value = scoresheetTextareaElement.value.trim() + 
+      `\n${decodeHtmlEntities(findingsGroup.title)}\n${score}`
+  }
+  scoresheetTextareaElement.value = value
 }
 
 async function scoreReport(key) {
@@ -406,12 +419,29 @@ async function scoreReport(key) {
   //console.log(JSON.stringify(findingsJson, null, 2))
   const displayLabelToScore = new Map()
   const scoresheet = document.getElementById(`${key}_scoresheet`).value
-  const scoresheetJson = extractScoresheetJson(scoresheet, botName)
+  const scoresheetData = extractScoresheetJson(scoresheet, botName)
+  const scoresheetJson = scoresheetData[0]
+  keyToScoresheetFormat.set(key, scoresheetData[1])
+  const stillMissing = scoresheetData[2]
+  if (0 != stillMissing.length) {
+    console.log(stillMissing)
+    alert(`Titles matching the following score titles weren't found in the report:\n - ${stillMissing.join('\n - ')}`)
+  }
+
   //console.log(JSON.stringify(scoresheetJson, null, 2))
   for (const scoring of scoresheetJson) {
     displayLabelToScore.set(scoring.munged.labelDisplay, scoring)
   }
   for (const findingsGroup of findingsJson) {
+    let scoring = displayLabelToScore.get(findingsGroup.munged.labelDisplay)
+    if (!scoring) {
+      scoring = {'munged':{'scoreDisplay':'','scoreCleaned': '_'}, 'botName':botName, 'label':findingsGroup.label}
+    }
+    const scoreReported = findingsGroup.munged.classDisplay
+    const isPassthroughScore = ('_' == scoring.munged.scoreCleaned)
+    const scoreCleaned = isPassthroughScore ? scoreReported : scoring.munged.scoreCleaned
+    const scoreId = scoring.botName + ':' + findingsGroup.munged.classSanitized + ':' + scoring.label //+ ':' + scoreCleaned + (entry.url ? (':' + entry.url) : '')
+
     const entry = sortObj({'class': findingsGroup.munged.classSanitized, 'salt':salt, 
                            'title': findingsGroup.munged.titleSanitized, 'label': '<placeholder>'})
     //console.log(entry)
@@ -420,8 +450,6 @@ async function scoreReport(key) {
       v.label = label
       return v
     })
-
-    //variantsWithAlteredLabels = variantsWithAlteredLabels.concat(variantsWithAlteredLabels).concat(variantsWithAlteredLabels).concat(variantsWithAlteredLabels).concat(variantsWithAlteredLabels).concat(variantsWithAlteredLabels).concat(variantsWithAlteredLabels).concat(variantsWithAlteredLabels).concat(variantsWithAlteredLabels)
 
     await getHashToData(variantsWithAlteredLabels).then(hashToFindingVariant => {
       const hits = []
@@ -433,11 +461,40 @@ async function scoreReport(key) {
           continue
         }
         //console.log(hash,variant)
-        const abbrElement = makeAbbrElement(variant.label.charAt(0), variant.label)
-        hits.push(abbrElement)
         classes.add(variant.label.charAt(0))
         labelsHit.add(variant.label)
+        if (!isPassthroughScore || scoreCleaned === variant.label.charAt(0)) {
+          const abbrElement = makeAbbrElement(variant.label.charAt(0), variant.label)
+          hits.push(abbrElement)
+        } else {
+          const aElement = document.createElement('a')
+          aElement.href = '#'
+          aElement.textContent = variant.label.charAt(0)
+          aElement.title = `Issue does not have an entry in the scoresheet and is using the stated severity (${scoreCleaned}). Click to add the rubric's (${variant.label}) severity (${variant.label.charAt(0)}) to the scoresheet (you must rescore afterwards)`
+          aElement.onclick = function() {
+            event.preventDefault()
+            addToScoresheet(key, findingsGroup, scoreCleaned)
+            const parentNode = aElement.parentNode
+            const innerText = parentNode.innerText
+            parentNode.innerHTML = ''
+            parentNode.textContent = innerText
+          }
+          hits.push(aElement)
+        }
       }
+
+      const scoredFindingId = (0 != labelsHit.size) ? JSON.stringify(Array.from(labelsHit)) : findingsGroup.munged.titleSanitized
+      let scoreToScoredIds = allScoredData.get(scoredFindingId)
+      if (!scoreToScoredIds) {
+        scoreToScoredIds = new Map()
+        allScoredData.set(scoredFindingId, scoreToScoredIds)
+      }
+      let scoreIds = scoreToScoredIds.get(scoreCleaned)
+      if (!scoreIds) {
+        scoreIds = new Set()
+        scoreToScoredIds.set(scoreCleaned, scoreIds)
+      }
+      scoreIds.add(scoreId)
 
       const classesArr = Array.from(classes)
       const trElement = document.createElement('tr')
@@ -452,30 +509,26 @@ async function scoreReport(key) {
       trElement.appendChild(tdElement)
 
 
-      let scoring = displayLabelToScore.get(findingsGroup.munged.labelDisplay)
-      if (!scoring) {
-        scoring = {'munged':{'scoreDisplay':'','scoreCleaned': '_'}, 'botName':botName, 'label':findingsGroup.label}
-      }
-      const scoreReported = findingsGroup.munged.classDisplay
-      const scoreCleaned = ('_' == scoring.munged.scoreCleaned) ? scoreReported : scoring.munged.scoreCleaned
-
-      const scoredFindingId = (0 != labelsHit.size) ? JSON.stringify(Array.from(labelsHit)) : findingsGroup.munged.titleSanitized
-      const scoreId = scoring.botName + ':' + findingsGroup.munged.classSanitized + ':' + scoring.label //+ ':' + scoreCleaned + (entry.url ? (':' + entry.url) : '')
-      let scoreToScoredIds = allScoredData.get(scoredFindingId)
-      if (!scoreToScoredIds) {
-        scoreToScoredIds = new Map()
-        allScoredData.set(scoredFindingId, scoreToScoredIds)
-      }
-      let scoreIds = scoreToScoredIds.get(scoreCleaned)
-      if (!scoreIds) {
-        scoreIds = new Set()
-        scoreToScoredIds.set(scoreCleaned, scoreIds)
-      }
-      scoreIds.add(scoreId)
 
       tdElement = document.createElement('td')
-      const abbrElement = makeAbbrElement(scoring.munged.scoreDisplay, /*scoring.botName + ':' + */scoreCleaned)
-      tdElement.appendChild(abbrElement)
+      if (isPassthroughScore) {
+        const aElement = document.createElement('a')
+        aElement.href = '#'
+        aElement.textContent = scoreCleaned
+        aElement.title = `Issue does not have an entry in the scoresheet and is using the stated severity (${scoreCleaned}). Click to add this issue's stated severity (${scoreCleaned}) to the scoresheet (you must re-score afterwards)`
+        const thisTd = tdElement
+        aElement.onclick = function() {
+          event.preventDefault()
+          thisTd.removeChild(aElement)
+          //thisTd.textContent = scoreCleaned
+          thisTd.appendChild(makeAbbrElement(scoreReported, scoreCleaned))
+          addToScoresheet(key, findingsGroup, scoreCleaned)
+        }
+        tdElement.appendChild(aElement)
+      } else {
+        const abbrElement = makeAbbrElement(scoring.munged.scoreDisplay, /*scoring.botName + ':' + */scoreCleaned)
+        tdElement.appendChild(abbrElement)
+      }
       trElement.appendChild(tdElement)
       if ('I' == scoreCleaned || 'D' == scoreCleaned) {
         // ignore
@@ -502,7 +555,8 @@ async function scoreReport(key) {
       tdElement.style.fontWeight = 'bold'
 
       tdElement = document.createElement('td')
-      if (0 === hits.length) {
+      const isHasRubric = (0 != hits.length)
+      if (!isHasRubric) {
         tdElement.textContent = '?'
       } else {
         tdElement.appendChild(hits[0])
@@ -623,7 +677,7 @@ async function getHashToData(data) {
     the correct score was chosen. If there is no scoresheet score (defaults to the reported severity) and no rubric score, the cell will be 
     bordered with yellow. If there is only one rubric match and the score doesn't match the rubric, it will be colored orange as an
     indication that the issue should be investigated. If the score is unrecognized, it will be colored red. Hover your mouse over any 
-    non-blank cell of the '<i>scores</i>' column to see what score the tool interpreted the string as. Note that '<i>D</i>', '<i>X</i>', and 
+    cell of the '<i>scores</i>' column to see what score the tool interpreted the string as. Note that '<i>D</i>', '<i>X</i>', and 
     negative numbers are all mean disputed entries (penalties), and 'I' is for ignored entries.</p>
 
     <p>The '<i>differences</i>' column uses the entry's score (either the scoresheet severity, or the submitted severity if one wasn't given),
