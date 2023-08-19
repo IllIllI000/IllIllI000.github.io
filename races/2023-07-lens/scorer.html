@@ -474,7 +474,7 @@ async function scoreReport(key) {
           aElement.title = `Issue does not have an entry in the scoresheet and is using the stated severity (${scoreCleaned}). Click to add the rubric's (${variant.label}) severity (${rubricScore}) to the scoresheet (you must rescore after you've finished all scoresheet updates)`
           aElement.onclick = function() {
             event.preventDefault()
-            addToScoresheet(key, findingsGroup, scoreCleaned)
+            addToScoresheet(key, findingsGroup, rubricScore)
             const parentNode = aElement.parentNode
             const innerText = parentNode.innerText
             parentNode.innerHTML = ''
