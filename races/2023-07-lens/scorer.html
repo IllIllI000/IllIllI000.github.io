@@ -253,7 +253,7 @@ function mungeLabelTitleAndScore(label, title, score) {
   if ('' == scoreCleaned) {
     scoreCleaned = '?'
   }
-  if (/^(-[0-9]+|X)$/.test(scoreDisplay.toUpperCase())) {
+  if (/^(-[0-9]+|X|FALSE)$/.test(scoreDisplay.toUpperCase())) {
     scoreCleaned = 'D'
   }
   result.scoreDisplay = scoreDisplay
@@ -357,8 +357,8 @@ function extractScoresheetJsonKb(scoresheet, botName, stillMissing) {
 
     const firstSpaceIndex = headingStr.search(/[\s\u00A0]/g)
     let label = headingStr.substr(0, firstSpaceIndex).trim()
-    const title = labelToDisplayLabel(label) ? headingStr.substr(firstSpaceIndex).trim() : headingStr
-
+    let title = labelToDisplayLabel(label) ? headingStr.substr(firstSpaceIndex).trim() : headingStr
+    title = title.replace(/^\([^)]+\) /, '').replace(/[\s]+[0-9,]+[\s]*$/, '') // link parens and trailing gas
     if (!label || !title) {
       stillMissing.push(headingStr)
       continue
@@ -391,7 +391,7 @@ function addToScoresheet(key, findingsGroup, score) {
     value = scoresheetTextareaElement.value.trim() + 
       `\n${decodeHtmlEntities(findingsGroup.title)}\n${score}`
   }
-  scoresheetTextareaElement.value = value
+  scoresheetTextareaElement.value = value.trim()
 }
 
 async function scoreReport(key) {
