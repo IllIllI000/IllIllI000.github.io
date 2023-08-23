@@ -367,13 +367,11 @@ function extractScoresheetJsonKb(scoresheet, botName, stillMissing) {
       stillMissing.push(headingStr)
       continue
     }
-console.log(label,title,score)
     const munged = mungeLabelTitleAndScore(label, title, score)
     const scoring = {'label':label, 'title':title, 'score':score, 'remaining':remaining, 'munged':munged, 'botName':botName}
     const fg = botTitleSanitizedToFindingsGroup.get(botName + '-'+ scoring.munged.titleSanitized)
     if (!fg) {
       // better to fail than to use a score that won't be used for actual scoring
-console.log(title, headingStr)
       stillMissing.push(headingStr)
       continue
     }
@@ -440,7 +438,7 @@ async function scoreReport(key) {
     alert(`Titles matching the following score titles weren't found in the report:\n - ${stillMissing.join('\n - ')}`)
   }
 
-  console.log(JSON.stringify(scoresheetJson, null, 2))
+  //console.log(JSON.stringify(scoresheetJson, null, 2))
   for (const scoring of scoresheetJson) {
     displayLabelToScore.set(scoring.munged.labelDisplay, scoring)
   }
