@@ -128,6 +128,9 @@ function addReportFormFields(label, body, scoresheet) {
 
 
 function sanitizeStr(str) {
+  if (!str) {
+    return str
+  }
   //return str.toLowerCase().replaceAll(/[\s\u00A0]+/g,' ').replaceAll(/[^a-z0-9\.\_\/: \-\)\(\[\]#]/g, '').trim()
   return str.toLowerCase().replaceAll(/[\s\u00A0]+/g,' ').replaceAll(/`/g, '').replaceAll(/[^a-z0-9 ]/g, ' ').replaceAll(/\s+/g, ' ').trim()
 }
@@ -356,17 +359,25 @@ function extractScoresheetJsonKb(scoresheet, botName, stillMissing) {
     const remaining = parts.slice(1).join(' ').trim()
 
     const firstSpaceIndex = headingStr.search(/[\s\u00A0]/g)
-    let label = headingStr.substr(0, firstSpaceIndex).trim()
-    let title = labelToDisplayLabel(label) ? headingStr.substr(firstSpaceIndex).trim() : headingStr
-    title = title.replace(/^\([^)]+\) /, '').replace(/[\s]+[0-9,]+[\s]*$/, '') // link parens and trailing gas
-    if (!label || !title) {
+    // can be (g-04-use-at-least-solidity-version-0819-to-gain-some-gas-boost) -> G-40819, and not useful, so don't use it
+    let label = '' // headingStr.substr(0, firstSpaceIndex).trim()
+    let title = headingStr.trim()//labelToDisplayLabel(label) ? headingStr.substr(firstSpaceIndex).trim() : headingStr.trim()
+    title = title.replace(/^\([^)]+?\)\s*/, '').replace(/[\s]+[0-9,]+[\s]*$/, '') // link parens and trailing gas
+    if (/*!label || */!title) {
       stillMissing.push(headingStr)
       continue
     }
+console.log(label,title,score)
     const munged = mungeLabelTitleAndScore(label, title, score)
     const scoring = {'label':label, 'title':title, 'score':score, 'remaining':remaining, 'munged':munged, 'botName':botName}
     const fg = botTitleSanitizedToFindingsGroup.get(botName + '-'+ scoring.munged.titleSanitized)
-    if (fg && !scoring.munged.labelDisplay) {
+    if (!fg) {
+      // better to fail than to use a score that won't be used for actual scoring
+console.log(title, headingStr)
+      stillMissing.push(headingStr)
+      continue
+    }
+    if (!scoring.munged.labelDisplay) {
       scoring.label = fg.label
       scoring.munged = mungeLabelTitleAndScore(fg.label, title, score)
     } 
@@ -420,15 +431,16 @@ async function scoreReport(key) {
   const displayLabelToScore = new Map()
   const scoresheet = document.getElementById(`${key}_scoresheet`).value
   const scoresheetData = extractScoresheetJson(scoresheet, botName)
+  //console.log(scoresheetData)
   const scoresheetJson = scoresheetData[0]
   keyToScoresheetFormat.set(key, scoresheetData[1])
   const stillMissing = scoresheetData[2]
   if (0 != stillMissing.length) {
-    console.log(stillMissing)
+    //console.log(stillMissing)
     alert(`Titles matching the following score titles weren't found in the report:\n - ${stillMissing.join('\n - ')}`)
   }
 
-  //console.log(JSON.stringify(scoresheetJson, null, 2))
+  console.log(JSON.stringify(scoresheetJson, null, 2))
   for (const scoring of scoresheetJson) {
     displayLabelToScore.set(scoring.munged.labelDisplay, scoring)
   }
