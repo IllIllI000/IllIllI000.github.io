@@ -3,6 +3,222 @@
     <meta name='robots' content='noindex'>
     <script>
 
+
+
+function BotReportUtils(hasher, decoder) {
+  this.hasher = hasher
+  this.decoder = decoder
+
+  this.extractFindingsJson = extractFindingsJson
+  this.generateRubric = generateRubric
+  this.makeRubricHash = makeRubricHash
+}
+
+async function generateRubric(salt, findings, aliases) {
+  const aliasData = new Map()
+  aliases.forEach(aliasGroup => {
+    aliasGroup.forEach(alias => {
+      aliasData.set(alias, aliasGroup)
+    })
+  })
+
+  const hashes = []
+  const classes = ['H','M','L','N','R','G','D']
+  for (const finding of findings) {
+    if (!finding.munged.ruleNum || !finding.munged.classDisplay) {
+      continue
+    }
+    const numStr = `${finding.munged.ruleNum}`.padStart(2, '0')
+    const label = `${finding.munged.classDisplay.toUpperCase()}‑${numStr}_dup`
+    let titles = aliasData.get(finding.title)
+    if (!titles) {
+      titles = [finding.title]
+    }
+    for (const title of titles) {
+      for (const clazz of classes) {
+	// in the future we'll include individual instances, but for now
+	// just operate on classes
+	const hash = await this.makeRubricHash(clazz, salt, title, label)
+	hashes.push(hash)
+      }
+    }
+  }
+  return {'salt': salt, 'hashes': hashes}
+}
+
+async function makeRubricHash(clss, salt, heading, label) {
+  const entry = {'class': sanitizeStr(clss),
+		 'salt': salt,
+		 'title': sanitizeStr(heading),
+		 'label': label
+		}
+  const eSorted = {};
+  Object.keys(entry).sort().forEach((key) => {
+    eSorted[key] = entry[key];
+  });
+
+  let hash = await this.hasher(JSON.stringify(eSorted))
+  hash = hash.substr(0, 10)
+  console.log(`${hash} - ${JSON.stringify(eSorted)}`)
+  return hash
+}
+
+function extractFindingsJson(reportBody, botName) {
+  const result = []
+  const reportBodyBlocks = reportBody.split(/(?:^|\n)#+[ \u00A0]+(?=[^\n]*[0-9]+)/g)
+  reportBodyBlocks.forEach(block => {
+    let heading = this.decoder(block.split('\n')[0].replaceAll(/<\/?[^`>]+(>|$)/g, '').trim())
+    if ('' === heading) {
+      return
+    }
+    const firstSpaceIndex = heading.search(/[\s\u00A0]/g)
+    const label = heading.substr(0, firstSpaceIndex).trim()
+    if (!/[0-9]/.test(label)) {
+      return
+    }
+    const title = heading.substr(firstSpaceIndex).trim()
+    const munged = mungeLabelAndTitle(label, title)
+
+    const instances = []
+    const urlRegex = /(https?:\/\/[^\s\)]+)/gi
+    let match
+    while ((match = urlRegex.exec(block)) !== null) {
+      const url = match[1]
+      match = url.match(/\/([^/]+\.sol)(?:#L(\d+)(?:-L(\d+))?)?/i)
+      if (null === match) {
+        continue
+      }
+      const file = match[1]
+      const lineFrom = match[2] ? parseInt(match[2]) : null
+      const lineTo = match[3] ? parseInt(match[3]) : null
+      const instance = {'url':url, 'file':file, 'lineFrom':lineFrom, 'lineTo':lineTo}
+      instances.push(instance)
+    }
+
+    const findingsGroup = {'label':label, 'title':title, 'munged':munged, 'instances':instances, 'botName':botName}
+    result.push(findingsGroup)
+  })
+  return result
+}
+
+function labelToRuleClass(label) {
+  if (!label) {
+    return null
+  }
+  return label.toUpperCase().replaceAll(/[^HMLNRGDI]/g, '').trim().charAt(0)
+}
+
+function labelToNumber(label) {
+  if (!label) {
+    return null
+  }
+  return label.replaceAll(/[^0-9]/g, '').replaceAll(/^0+/g, '').trim()
+}
+
+function labelToDisplayLabel(label) {
+  if (!label) {
+    return null
+  }
+  const ruleClass = labelToRuleClass(label)
+  const number = labelToNumber(label)
+  if (!ruleClass || !number || '' === ruleClass || '' === number) {
+    return null
+  }
+  return ruleClass + '-' + number
+}
+
+function sanitizeStr(str) {
+  if (!str) {
+    return str
+  }
+  //return str.toLowerCase().replaceAll(/[\s\u00A0]+/g,' ').replaceAll(/[^a-z0-9\.\_\/: \-\)\(\[\]#]/g, '').trim()
+  return str.toLowerCase().replaceAll(/[\s\u00A0]+/g,' ').replaceAll(/`/g, '').replaceAll(/[^a-z0-9 ]/g, ' ').replaceAll(/\s+/g, ' ').trim()
+}
+
+function mungeLabelAndTitle(label, title) {
+  const number = labelToNumber(label)
+  const ruleClass = labelToRuleClass(label)
+  const ruleClassSanitized = sanitizeStr(ruleClass)
+  const displayLabel = labelToDisplayLabel(label)
+  const titleSanitized = sanitizeStr(title)
+  const result = {'ruleNum':number ? parseInt(number) : null, 'classDisplay':ruleClass, 'classSanitized':ruleClassSanitized, 
+                  'labelDisplay':displayLabel, 'titleSanitized':titleSanitized}
+  return result
+}
+
+function mungeLabelTitleAndScore(label, title, score) {
+  const result = mungeLabelAndTitle(label, title, score)
+  const scoreDisplay = score ? score : ''
+  const scoreRuleClass = labelToRuleClass(score)
+  let scoreCleaned = scoreDisplay !== '' ? scoreRuleClass : '_'
+  if ('' == scoreCleaned) {
+    scoreCleaned = '?'
+  }
+  if (/^(-[0-9]+|X|FALSE)$/.test(scoreDisplay.toUpperCase())) {
+    scoreCleaned = 'D'
+  }
+  result.scoreDisplay = scoreDisplay
+  result.scoreCleaned = scoreCleaned
+  return result
+}
+
+
+// Export functions based on the environment
+if (typeof module !== 'undefined' && typeof module.exports !== 'undefined') {
+  // This code will run in Node.js
+
+  const cheerio = require('cheerio')
+  function decodeHtmlEntities(encodedString) {
+    const node = cheerio.load(encodedString, 
+			      { xml: true, decodeEntities: false }, false);
+    return node.html({ decodeEntities: false })
+  }
+  
+  const crypto = require('crypto');
+  async function hashStr(str) {
+    return crypto.createHash('sha256').update(str).digest('hex')
+  }
+
+  function getBotReportUtils() {
+    return new BotReportUtils(hashStr, decodeHtmlEntities)
+  }
+
+  module.exports.getBotReportUtils = getBotReportUtils
+} else {
+  // This code will run in the browser
+
+  function decodeHtmlEntities(encodedString) {
+    const tempElement = document.createElement('textarea')
+    tempElement.innerHTML = encodedString
+    return tempElement.value
+  }
+
+  async function hashStr(str) {
+    const encoder = new TextEncoder()
+    const dataBuffer = encoder.encode(str)
+    const hashBuffer = await crypto.subtle.digest('SHA-256', dataBuffer)
+    const hashArray = Array.from(new Uint8Array(hashBuffer))
+    const hashHex = hashArray.map(byte => byte.toString(16).padStart(2, '0')).join('')
+    const partialHash = hashHex.substr(0, 10)
+    return partialHash
+  }
+
+  function getBotReportUtils() {
+    return new BotReportUtils(hashStr, decodeHtmlEntities)
+  }
+}
+
+/**
+const bru = getBotReportUtils()
+const body = require('fs').readFileSync("/tmp/report.md", 'utf8')
+const findings = bru.extractFindingsJson(body, 'MyBotName')
+bru.generateRubric("salt123", findings, []).then(r => {
+  console.log(JSON.stringify(r))
+})
+/**/
+
+
+
 var reportCount = 0
 var salt
 var hashes
@@ -10,6 +226,7 @@ var urlCount = 0
 var allScoredData
 var botTitleSanitizedToFindingsGroup
 var keyToScoresheetFormat
+var bru = getBotReportUtils()
 
 function makeAbbrElement(abbr, title) {
   if ('' == abbr) {
@@ -39,7 +256,7 @@ function addReportFormFields(label, body, scoresheet) {
   const tableElement = document.createElement('table')
   const theadElement = tableElement.createTHead()
   const rowElement = theadElement.insertRow()
-  const headings = ['label', 'title', 'scores', 'rubric', 'differences']
+  const headings = ['label', 'title', 'scores', 'rubric', 'differences', 'comments']
   for (const heading of headings) {
     const headingElement = document.createElement('th')
     headingElement.textContent = heading
@@ -133,12 +350,6 @@ function sanitizeStr(str) {
   }
   //return str.toLowerCase().replaceAll(/[\s\u00A0]+/g,' ').replaceAll(/[^a-z0-9\.\_\/: \-\)\(\[\]#]/g, '').trim()
   return str.toLowerCase().replaceAll(/[\s\u00A0]+/g,' ').replaceAll(/`/g, '').replaceAll(/[^a-z0-9 ]/g, ' ').replaceAll(/\s+/g, ' ').trim()
-}
-
-function decodeHtmlEntities(encodedString) {
-  const tempElement = document.createElement('textarea')
-  tempElement.innerHTML = encodedString
-  return tempElement.value
 }
 
 function htmlEncode(text) {
@@ -268,7 +479,7 @@ function extractFindingsJson(reportBody, botName) {
   const result = []
   const reportBodyBlocks = reportBody.split(/(?:^|\n)#+[ \u00A0]+(?=[^\n]*[0-9]+)/g)
   for (const block of reportBodyBlocks) {
-    let heading = decodeHtmlEntities(block.split('\n')[0].replaceAll(/<\/?[^`>]+(>|$)/g, '').trim())
+    let heading = bru.decoder(block.split('\n')[0].replaceAll(/<\/?[^`>]+(>|$)/g, '').trim())
     if ('' === heading) {
       continue
     }
@@ -295,9 +506,6 @@ function extractFindingsJson(reportBody, botName) {
 
     const findingsGroup = {'label':label, 'title':title, 'munged':munged, 'instances':instances, 'botName':botName}
     result.push(findingsGroup)
-
-    botTitleSanitizedToFindingsGroup.set(botName + '-' +munged.titleSanitized,
-                                         findingsGroup)
   }
   return result
 }
@@ -308,6 +516,7 @@ function extractScoresheetJson(scoresheet, botName, stillMissing) {
   const colBased = extractScoresheetJsonCols(scoresheet, botName, stillMissingCols)
   const kbBased = extractScoresheetJsonKb(scoresheet, botName, stillMissingKb)
   const isColBased = colBased.length >= kbBased.length
+  //console.log(botName, 'col or kb?', isColBased)
   return [isColBased ? colBased : kbBased, isColBased, isColBased ? stillMissingCols : stillMissingKb]
 }
 
@@ -322,6 +531,7 @@ function extractScoresheetJsonCols(scoresheet, botName, stillMissing) {
     for (let i = 0; i < parts.length; ++i) {
       parts[i] = parts[i].trim()
     }
+
     const label = parts[0]
     const title = parts[1]
     if (!label || !title) {
@@ -395,10 +605,10 @@ function addToScoresheet(key, findingsGroup, score) {
   let value
   if (keyToScoresheetFormat.get(key)) {
     value = scoresheetTextareaElement.value.trim() + 
-      `\n${decodeHtmlEntities(findingsGroup.label)}\t${decodeHtmlEntities(findingsGroup.title)}\t${score}`
+      `\n${s.decoder(findingsGroup.label)}\t${s.decoder(findingsGroup.title)}\t${score}`
   } else {
     value = scoresheetTextareaElement.value.trim() + 
-      `\n${decodeHtmlEntities(findingsGroup.title)}\n${score}`
+      `\n${s.decoder(findingsGroup.title)}\n${score}`
   }
   scoresheetTextareaElement.value = value.trim()
 }
@@ -424,7 +634,14 @@ async function scoreReport(key) {
   // tbodyElement.style.display = 'none'
   tbodyElement.innerHTML = ''
   const reportBody = document.getElementById(`${key}_body`).value
-  const findingsJson = extractFindingsJson(reportBody, botName)
+  const findingsJson = bru.extractFindingsJson(reportBody, botName)
+  findingsJson.forEach(findingsGroup => {    
+    const key = findingsGroup.botName + '-' + findingsGroup.munged.titleSanitized
+    if ('d' == findingsGroup.munged.classSanitized && !botTitleSanitizedToFindingsGroup.get(key)) {
+      return // for now won't add to map, because gets applied to end of the list which are disputed
+    }
+    botTitleSanitizedToFindingsGroup.set(key, findingsGroup)
+  })
   //console.log(JSON.stringify(findingsJson, null, 2))
   const displayLabelToScore = new Map()
   const scoresheet = document.getElementById(`${key}_scoresheet`).value
@@ -444,6 +661,7 @@ async function scoreReport(key) {
   }
   for (const findingsGroup of findingsJson) {
     let scoring = displayLabelToScore.get(findingsGroup.munged.labelDisplay)
+    const hasScore = undefined != scoring
     if (!scoring) {
       scoring = {'munged':{'scoreDisplay':'','scoreCleaned': '_'}, 'botName':botName, 'label':findingsGroup.label}
     }
@@ -526,7 +744,11 @@ async function scoreReport(key) {
         const aElement = document.createElement('a')
         aElement.href = '#'
         aElement.textContent = scoreCleaned
-        aElement.title = `Issue does not have an entry in the scoresheet and is using the stated severity (${scoreCleaned}). Click to add this issue's stated severity (${scoreCleaned}) to the scoresheet (you must re-score after you've finished all scoresheet updates)`
+        if (hasScore) {
+          aElement.title = `Using stated severity since scoresheet had a blank value for the score. Click to explicitly add this issue's stated severity (${scoreCleaned}) to the scoresheet`
+        } else {
+          aElement.title = `Issue does not have an entry in the scoresheet and is using the stated severity (${scoreCleaned}). Click to add this issue's stated severity (${scoreCleaned}) to the scoresheet (you must re-score after you've finished all scoresheet updates)`
+        }
         const thisTd = tdElement
         aElement.onclick = function() {
           event.preventDefault()
@@ -562,7 +784,7 @@ async function scoreReport(key) {
         } else if (scoreCleaned !== rubricScore) {
           tdElement.style.background = 'orange'
         }
-      } else if (0 === hits.length && '_' == scoring.munged.scoreCleaned) {
+      } else if (0 === hits.length && '_' == scoring.munged.scoreCleaned && !hasScore) {
         tdElement.style.border = 'solid yellow 3px'
       }
 
@@ -583,6 +805,11 @@ async function scoreReport(key) {
       tdElement.id = scoring.botName + ':' + findingsGroup.munged.classSanitized + ':' + scoring.label
       trElement.appendChild(tdElement)
 
+      tdElement = document.createElement('td')
+      tdElement.textContent = scoring.remaining ? scoring.remaining.join(' ') : ''
+      trElement.appendChild(tdElement)
+
+
       tbodyElement.appendChild(trElement)
     })
   }
@@ -601,22 +828,10 @@ function cloneObj(obj) {
 }
 
 
-async function hashStr(str) {
-  const encoder = new TextEncoder()
-  const dataBuffer = encoder.encode(str)
-  const hashBuffer = await crypto.subtle.digest('SHA-256', dataBuffer)
-  const hashArray = Array.from(new Uint8Array(hashBuffer))
-  const hashHex = hashArray.map(byte => byte.toString(16).padStart(2, '0')).join('')
-  const partialHash = hashHex.substr(0, 10)
-  return partialHash
-}
-
-
-
 async function getHashToData(data) {
   const hashPromises = data.map(async datum => {
     const str = JSON.stringify(datum)
-    const h = await hashStr(str)
+    const h = await bru.hasher(str)
     return [h, datum]
   })
 
