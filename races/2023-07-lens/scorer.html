@@ -572,7 +572,7 @@ function extractScoresheetJsonKb(scoresheet, botName, stillMissing) {
     // can be (g-04-use-at-least-solidity-version-0819-to-gain-some-gas-boost) -> G-40819, and not useful, so don't use it
     let label = '' // headingStr.substr(0, firstSpaceIndex).trim()
     let title = headingStr.trim()//labelToDisplayLabel(label) ? headingStr.substr(firstSpaceIndex).trim() : headingStr.trim()
-    title = title.replace(/^\([^)]+?\)\s*/, '').replace(/[\s]+[0-9,]+[\s]*$/, '') // link parens and trailing gas
+    title = title.replace(/^(- )?\([^)]+?\)\s*/, '').replace(/[\s]+[0-9,]+[\s]*$/, '') // link parens and trailing gas
     if (/*!label || */!title) {
       stillMissing.push(headingStr)
       continue
