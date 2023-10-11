@@ -208,7 +208,20 @@ const bru = require('./bot-report-utils.js').getBotReportUtils()
 const body = require('fs').readFileSync("/tmp/report.md", 'utf8')
 const findings = bru.extractFindingsJson(body, 'MyBotName')
 console.log(JSON.stringify(findings, null, 2))
-bru.generateRubric("salt123", findings, []).then(r => {
+const aliases = [
+    ["Setter does not check that value is changed",
+    "Setters should prevent re-setting the same value",
+    "missing same value check in set functions",
+    "Setters should have initial value check",
+    "Avoid updating storage variables with the same value",
+    "Avoid updating storage when the value hasn't changed",
+    "Initial value check is missing in Set Functions",
+    "Setters do not check that value is changed",
+    "Avoid updating storage when the value hasn't changed"],
+    ["ex2_alias1", 
+    "ex2_alias2"]
+]
+bru.generateRubric("salt123", findings, aliases).then(r => {
   console.log(JSON.stringify(r))
 })
 /**/
