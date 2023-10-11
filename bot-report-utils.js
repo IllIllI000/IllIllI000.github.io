@@ -221,6 +221,7 @@ const aliases = [
     ["ex2_alias1", 
     "ex2_alias2"]
 ]
+console.log(JSON.stringify(aliases, null, 2))
 bru.generateRubric("salt123", findings, aliases).then(r => {
   console.log(JSON.stringify(r))
 })
