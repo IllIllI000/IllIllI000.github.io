@@ -605,10 +605,10 @@ function addToScoresheet(key, findingsGroup, score) {
   let value
   if (keyToScoresheetFormat.get(key)) {
     value = scoresheetTextareaElement.value.trim() + 
-      `\n${s.decoder(findingsGroup.label)}\t${s.decoder(findingsGroup.title)}\t${score}`
+      `\n${bru.decoder(findingsGroup.label)}\t${bru.decoder(findingsGroup.title)}\t${score}`
   } else {
     value = scoresheetTextareaElement.value.trim() + 
-      `\n${s.decoder(findingsGroup.title)}\n${score}`
+      `\n${bru.decoder(findingsGroup.title)}\n${score}`
   }
   scoresheetTextareaElement.value = value.trim()
 }
