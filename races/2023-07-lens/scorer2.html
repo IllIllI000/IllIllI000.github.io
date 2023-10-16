@@ -391,7 +391,7 @@ async function score() {
 
   for (const [scoredFindingId, scoreToScoreIds] of allScoredData) {
     if (1 >= scoreToScoreIds.size) {
-      continue
+//      continue
     }
     for (const [score, scoreIds] of scoreToScoreIds) {
       for (const scoreId of scoreIds) {
@@ -400,6 +400,8 @@ async function score() {
         const elem = document.getElementById(elemId)
         if (!elem) console.log(elemId, elem)
         const others = new Map(scoreToScoreIds)
+	const selfBot = scoreId.split(':')[0]
+        const selfs = Array.from(new Map(scoreToScoreIds).get(score)).filter((sid) => sid.startsWith(selfBot) && sid != scoreId)
         others.delete(score)
         const scores = new Set(scoreToScoreIds.keys())
         scores.add(score)
@@ -411,7 +413,15 @@ async function score() {
         } else {
           continue
         }
-        elem.textContent = score + ' vs ' + JSON.stringify(Object.fromEntries(others), setReplacer)
+	elem.textContent = ""
+	if (1 < scoreToScoreIds.size) {
+          elem.textContent = score + ' vs ' + JSON.stringify(Object.fromEntries(others), setReplacer) + ' '
+	}
+	if (0 < selfs.length) 
+	{
+          elem.style.border = (1 < scores.size) ? 'solid red 3px' : 'solid orange 3px'
+	  elem.textContent += 'Possible clones: ' + JSON.stringify(selfs, setReplacer) + ' ' 
+	}
       }
     }
   }
@@ -605,10 +615,10 @@ function addToScoresheet(key, findingsGroup, score) {
   let value
   if (keyToScoresheetFormat.get(key)) {
     value = scoresheetTextareaElement.value.trim() + 
-      `\n${bru.decoder(findingsGroup.label)}\t${bru.decoder(findingsGroup.title)}\t${score}`
+      `\n${s.decoder(findingsGroup.label)}\t${s.decoder(findingsGroup.title)}\t${score}`
   } else {
     value = scoresheetTextareaElement.value.trim() + 
-      `\n${bru.decoder(findingsGroup.title)}\n${score}`
+      `\n${s.decoder(findingsGroup.title)}\n${score}`
   }
   scoresheetTextareaElement.value = value.trim()
 }
