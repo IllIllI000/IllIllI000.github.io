@@ -398,7 +398,10 @@ async function score() {
         const elemId = scoreId.split(':').slice(0,3).join(':')
         const classSanitized = scoreId.split(':')[1]
         const elem = document.getElementById(elemId)
-        if (!elem) console.log(elemId, elem)
+        if (!elem) {
+          console.log(elemId, elem)
+          continue
+	}
         const others = new Map(scoreToScoreIds)
 	const selfBot = scoreId.split(':')[0]
         const selfs = Array.from(new Map(scoreToScoreIds).get(score)).filter((sid) => sid.startsWith(selfBot) && sid != scoreId)
